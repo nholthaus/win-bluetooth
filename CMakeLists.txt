@@ -6,17 +6,26 @@ cmake_minimum_required(VERSION 2.8.12)
 SET(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 #-------------------------------------------------------------------------------
+#	BUILD OPTIONS
+#-------------------------------------------------------------------------------
+
+OPTION(BUILD_TESTS "Build unit tests" ON)
+
+#-------------------------------------------------------------------------------
 #	SOURCE CODE
 #-------------------------------------------------------------------------------
 
 # .h files
 list(APPEND HEADER_FILES
-
+include/bluetoothException.h
+include/bluetoothRadio.h
 )
 
 # .cpp files
 list(APPEND SOURCE_FILES
 src/main.cpp
+src/bluetoothException.cpp
+src/bluetoothRadio.cpp
 )
 
 # on windows, append headers to source so they show up in visual studio
@@ -108,14 +117,25 @@ source_group(continuous-integration REGULAR_EXPRESSION ".*[.]yml")
 # list(REMOVE_DUPLICATES LIBRARIES)
 
 #-------------------------------------------------------------------------------
-#	GENERATE EXECUTABLE
+#	ADDITIONAL INCLUDE DIRECTORIES
+#-------------------------------------------------------------------------------
+
+list(APPEND INCLUDE_DIRS
+"./include"
+)
+
+# Remove duplicate library dependencies. 
+list(REMOVE_DUPLICATES INCLUDE_DIRS)
+
+#-------------------------------------------------------------------------------
+#	GENERATE LIBRARY
 #-------------------------------------------------------------------------------
 
 # Set additional include directories
 include_directories(${INCLUDE_DIRS})
 
 # Generate the executable
-add_executable(${TARGET_NAME} ${SOURCE_FILES} ${RESOURCES})
+add_library(${TARGET_NAME} STATIC ${SOURCE_FILES} ${RESOURCES})
 
 # link libraries
 target_link_libraries(${TARGET_NAME} ${LIBRARIES})
@@ -123,5 +143,16 @@ target_link_libraries(${TARGET_NAME} ${LIBRARIES})
 # Use the automatically determined RPATH values
 set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-INSTALL(TARGETS ${TARGET_NAME} RUNTIME DESTINATION bin)
+INSTALL(TARGETS ${TARGET_NAME} ARCHIVE DESTINATION lib)
 INCLUDE(InstallRequiredSystemLibraries)
+
+#-------------------------------------------------------------------------------
+#	UNIT TESTS
+#-------------------------------------------------------------------------------
+
+if(BUILD_TESTS)
+	set(VERSION_GTEST "1.8.0" CACHE STRING "Google Test framework version")
+	enable_testing()
+	add_subdirectory(3rdParty/gtest)
+	add_subdirectory(tests)
+endif(BUILD_TESTS)

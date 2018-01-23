@@ -1,8 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@PROJECT	win-bluetooth
-/// @BRIEF		application information
-///	@DETAILS	
+//	
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -16,7 +14,7 @@
 // 
 // The above copyright notice and this permission notice shall be included in all copies or 
 // substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
 // BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
 // NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
@@ -25,35 +23,48 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-// ATTRIBUTION:
-// Parts of this work have been adapted from: 
-//
-//--------------------------------------------------------------------------------------------------
-// 
 // Copyright (c) 2018 Nic Holthaus
 // 
 //--------------------------------------------------------------------------------------------------
+//
+// ATTRIBUTION:
+//
+//
+//--------------------------------------------------------------------------------------------------
+//
+/// @file	
+/// @brief	
+//
+//--------------------------------------------------------------------------------------------------
 
-//------------------------------
+#pragma once
+#ifndef bluetoothRadio_h__
+#define bluetoothRadio_h__
+
+
+//-------------------------
 //	INCLUDES
-//------------------------------
+//-------------------------
 
-// std
-#include <iostream>
+#include <vector>
 
-// win-bluetooth
-#include <appinfo.h>
-#include <bluetoothRadio.h>
+//-------------------------
+//	FORWARD DECLARATIONS
+//-------------------------
 
 //--------------------------------------------------------------------------------------------------
-//	MAIN FUNCTION
+//	CLASS BLUETOOTHRADIO
 //--------------------------------------------------------------------------------------------------
-int main(int argc, char* argv[])
+class BluetoothRadio
 {
-	std::cout << APPINFO::name << std::endl;
+public:
 
-	BluetoothRadio br;
-	br.enumerateLocalRadios();
+	bool enumerateLocalRadios();
 
-	std::cin.get();
-}
+private:
+
+	std::vector<void*> m_radios;
+};
+
+
+#endif // bluetoothRadio_h__

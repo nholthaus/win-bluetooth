@@ -1,8 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@PROJECT	win-bluetooth
-/// @BRIEF		application information
-///	@DETAILS	
+///	@project WIN-BLUETOOTH
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -16,7 +14,7 @@
 // 
 // The above copyright notice and this permission notice shall be included in all copies or 
 // substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING 
 // BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND 
 // NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, 
@@ -25,35 +23,49 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
+// Copyright (c) 2017 Nic Holthaus
+// 
+//--------------------------------------------------------------------------------------------------
+//
 // ATTRIBUTION:
-// Parts of this work have been adapted from: 
+//
 //
 //--------------------------------------------------------------------------------------------------
-// 
-// Copyright (c) 2018 Nic Holthaus
-// 
+//
+/// @file	bluetoothException.h
+/// @brief	Exception class for win-bluetooth
+//
 //--------------------------------------------------------------------------------------------------
 
-//------------------------------
+#pragma once
+#ifndef bluetoothException_h__
+#define bluetoothException_h__
+
+
+//-------------------------
 //	INCLUDES
-//------------------------------
+//-------------------------
 
-// std
-#include <iostream>
+#include <exception>
 
-// win-bluetooth
-#include <appinfo.h>
-#include <bluetoothRadio.h>
+//-------------------------
+//	FORWARD DECLARATIONS
+//-------------------------
 
-//--------------------------------------------------------------------------------------------------
-//	MAIN FUNCTION
-//--------------------------------------------------------------------------------------------------
-int main(int argc, char* argv[])
+using HRESULT = long;
+
+class BluetoothException : public std::exception
 {
-	std::cout << APPINFO::name << std::endl;
+public:
 
-	BluetoothRadio br;
-	br.enumerateLocalRadios();
+	BluetoothException(HRESULT result);
+	BluetoothException(const char* what);
+	virtual ~BluetoothException() noexcept;
+	virtual char const* what() const override;
 
-	std::cin.get();
-}
+private:
+
+	char* m_what;
+};
+
+#endif // bluetoothException_h__
