@@ -17,13 +17,14 @@ OPTION(BUILD_TESTS "Build unit tests" ON)
 
 # .h files
 list(APPEND HEADER_FILES
+include/bluetooth.h
 include/bluetoothException.h
 include/bluetoothRadio.h
 )
 
 # .cpp files
 list(APPEND SOURCE_FILES
-src/main.cpp
+src/bluetooth.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
 )

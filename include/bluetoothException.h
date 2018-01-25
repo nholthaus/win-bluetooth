@@ -66,6 +66,7 @@ public:
 private:
 
 	char* m_what;
+	bool m_free;
 };
 
 #endif // bluetoothException_h__

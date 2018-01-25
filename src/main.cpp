@@ -43,7 +43,7 @@
 
 // win-bluetooth
 #include <appinfo.h>
-#include <bluetoothRadio.h>
+#include <Bluetooth.h>
 
 //--------------------------------------------------------------------------------------------------
 //	MAIN FUNCTION
@@ -52,7 +52,7 @@ int main(int argc, char* argv[])
 {
 	std::cout << APPINFO::name << std::endl;
 
-	BluetoothRadio br;
+	Bluetooth br;
 	br.enumerateLocalRadios();
 
 	std::cin.get();

@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@project WIN-BLUETOOTH
+//	
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -32,55 +32,56 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothRadio.h
-/// @brief	Description of a single bluetooth radio
+/// @file	
+/// @brief	
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef bluetoothRadio_h__
-#define bluetoothRadio_h__
+#ifndef bluetooth_h__
+#define bluetooth_h__
 
-//------------------------------
+
+//-------------------------
 //	INCLUDES
-//------------------------------
+//-------------------------
 
-#include <string>
+#include <vector>
+
+#include <bluetoothRadio.h>
+
+//-------------------------
+//	FORWARD DECLARATIONS
+//-------------------------
+
 
 //--------------------------------------------------------------------------------------------------
-//	BLUETOOTH RADIO
+//	CLASS BLUETOOTH
 //--------------------------------------------------------------------------------------------------
-class BluetoothRadio
+class Bluetooth
 {
 public:
 
-	BluetoothRadio(void* radioHandle = nullptr);
-	virtual ~BluetoothRadio();
+	BluetoothRadio& localRadio(unsigned int index = 0);
+	BluetoothRadio& localRadio(const std::wstring_view& name, bool refreshList = false);
+	const BluetoothRadio& localRadio(unsigned int index = 0) const;
+	const BluetoothRadio& localRadio(const std::wstring_view& name, bool refreshList = false) const;
+	std::vector<BluetoothRadio>& localRadios(bool refreshList = false);
+	const std::vector<BluetoothRadio>& localRadios(bool refreshList = false) const;
 
-	void* handle();
-	const void* handle() const;
-	bool isValid() const;
-	unsigned long long address() const;
-	std::wstring name() const;
-	unsigned long classOfDevice() const;
-	unsigned short manufacturer() const;
+	std::vector<BluetoothRadio>& remoteDevices(bool refreshList = false);
+	const std::vector<BluetoothRadio>& remoteDevices(bool refreshList = false) const;
 
-	bool discoverable() const;
-	void setDiscoverable(bool enable);
+protected:
 
-	bool operator==(const std::wstring_view name) const;
-	bool operator==(const unsigned long long address) const;
+	bool enumerateLocalRadios(bool refreshList = false) const;
 
 private:
 
-	void*				m_handle;
-	bool				m_isValid;
-	unsigned long long	m_address;
-	std::wstring		m_name;
-	unsigned long		m_class;
-	unsigned short		m_lmpSubversion;
-	unsigned short		m_manufacturer;
-
+	mutable std::vector<BluetoothRadio> m_localRadios;
+	mutable std::vector<BluetoothRadio> m_remoteDevices;
+	BluetoothRadio m_invalidRadio;
 };
 
-#endif // bluetoothRadio_h__
+
+#endif // bluetooth_h__

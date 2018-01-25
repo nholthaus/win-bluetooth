@@ -1,76 +1,88 @@
 #include <bluetoothRadio.h>
-#include <bluetoothException.h>
-
-#include <utility>
-#include <cassert>
-
 #include <windows.h>
-#include <BluetoothAPIs.h>
+#include <bluetoothapis.h>
 
-#pragma comment(lib, "Bthprops.lib")
-
-//------------------------------
-//	MACROS
-//------------------------------
-
-#define ERR HRESULT_FROM_WIN32(GetLastError())
-
-//--------------------------------------------------------------------------------------------------
-//	RAII WRAPPERS
-//--------------------------------------------------------------------------------------------------
-
-class BluetoothFindRadioHandle
+BluetoothRadio::BluetoothRadio(void* radioHandle)
+	: m_handle(radioHandle)
 {
-public:
-
-	BluetoothFindRadioHandle(HBLUETOOTH_RADIO_FIND handle) noexcept : m_handle(handle) {}
-	~BluetoothFindRadioHandle() 
-	{ 
-		// in theory this can fail, but not much we can do about it
-		if (!BluetoothFindRadioClose(m_handle))
-			assert(true);	// if you hit this assert, you probably need to do some serious debugging
+	if (!m_handle) 
+	{
+		m_isValid = false;
+		m_address = 0;
+		m_name = L"INVALID";
 	}
-	operator HBLUETOOTH_RADIO_FIND() noexcept { return m_handle; }
-
-private:
-
-	HBLUETOOTH_RADIO_FIND m_handle;
-};
-
-//--------------------------------------------------------------------------------------------------
-//	METHODS
-//--------------------------------------------------------------------------------------------------
-bool BluetoothRadio::enumerateLocalRadios()
-{
-	// this thing is required by the API but is pointless for our purposes. Probably used to
-	// differentiate x86/x64 systems
-	BLUETOOTH_FIND_RADIO_PARAMS btfrp;
-	btfrp.dwSize = sizeof(BLUETOOTH_FIND_RADIO_PARAMS);
-
-	HANDLE radio;
-
-	// Get the first local radio
-	BluetoothFindRadioHandle radioFindHandle = BluetoothFindFirstRadio(&btfrp, &radio);
-	if (radio)
-		m_radios.push_back(radio);
 	else
 	{
-		// this PC doesn't have any radios
-		if (ERR == ERROR_NO_MORE_ITEMS)
-			return false;
-		else
-			throw BluetoothException(ERR);
+		BLUETOOTH_RADIO_INFO info;
+		info.dwSize = sizeof(BLUETOOTH_RADIO_INFO);
+
+		BluetoothGetRadioInfo(m_handle, &info);
+
+		m_address = info.address.ullLong;
+		m_class = info.ulClassofDevice;
+		m_lmpSubversion = info.lmpSubversion;
+		m_manufacturer = info.manufacturer;
+		m_name = info.szName;
 	}
+}
 
-	// get the rest of the local radios
-	while (BluetoothFindNextRadio(radioFindHandle, &radio))
-	{
-		m_radios.push_back(radio);
-	}
+BluetoothRadio::~BluetoothRadio()
+{
+	CloseHandle(m_handle);
+}
 
-	if (ERR != ERROR_NO_MORE_ITEMS)
-		throw BluetoothException(ERR);
+void* BluetoothRadio::handle()
+{
+	return m_handle;
+}
 
-	return m_radios.size();
+const void* BluetoothRadio::handle() const
+{
+	return m_handle;
+}
+
+bool BluetoothRadio::isValid() const
+{
+	return m_isValid;
+}
+
+unsigned long long BluetoothRadio::address() const
+{
+	return m_address;
+}
+
+std::wstring BluetoothRadio::name() const
+{
+	return m_name;
+}
+
+unsigned long BluetoothRadio::classOfDevice() const
+{
+	return m_class;
+}
+
+unsigned short BluetoothRadio::manufacturer() const
+{
+	return m_manufacturer;
+}
+
+bool BluetoothRadio::discoverable() const
+{
+	return BluetoothIsDiscoverable(m_handle);
+}
+
+void BluetoothRadio::setDiscoverable(bool enable)
+{
+	BluetoothEnableDiscovery(m_handle, enable);
+}
+
+bool BluetoothRadio::operator==(const unsigned long long address) const
+{
+	return address == m_address;
+}
+
+bool BluetoothRadio::operator==(const std::wstring_view name) const
+{
+	return name == m_name;
 }
 

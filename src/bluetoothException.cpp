@@ -19,17 +19,26 @@ BluetoothException::BluetoothException(HRESULT result)
 		NULL);   // arguments - see note 
 
 	if (!m_what)
-		m_what = "Unknown Bluetooth Error";
+	{
+		m_what = strdup("Unknown Bluetooth Error");
+		m_free = true;
+	}
+	else
+		m_free = false;
 }
 
 BluetoothException::BluetoothException(const char* what)
 {
-	strcpy(m_what, what);
+	m_what = strdup(what);
+	m_free = true;
 }
 
 BluetoothException::~BluetoothException() noexcept
 {
-	LocalFree(m_what);
+	if (m_free)
+		free(m_what);
+	else
+		LocalFree(m_what);
 }
 
 char const* BluetoothException::what() const
