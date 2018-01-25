@@ -23,8 +23,11 @@ BluetoothException::BluetoothException(HRESULT result)
 		m_what = _strdup("Unknown Bluetooth Error");
 		m_free = true;
 	}
-	else
+	else 
+	{
 		m_free = false;
+		m_what[strlen(m_what) - 2] = '\0';	// eat "\n\r"
+	}
 }
 
 BluetoothException::BluetoothException(const char* what)

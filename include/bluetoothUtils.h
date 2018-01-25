@@ -2,6 +2,8 @@
 // 
 ///	@project WIN-BLUETOOTH
 //
+//			!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
+//
 //--------------------------------------------------------------------------------------------------
 //
 // The MIT License (MIT)
@@ -32,59 +34,16 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothRadio.h
+/// @file	bluetoothUtils.h
 /// @brief	Description of a single bluetooth radio
 //
 //--------------------------------------------------------------------------------------------------
-
-#pragma once
-#ifndef bluetoothRadio_h__
-#define bluetoothRadio_h__
 
 //------------------------------
 //	INCLUDES
 //------------------------------
 
+#include <windows.h>
 #include <string>
 
-
-//--------------------------------------------------------------------------------------------------
-//	BLUETOOTH RADIO
-//--------------------------------------------------------------------------------------------------
-class BluetoothRadio
-{
-public:
-
-	BluetoothRadio(void* radioHandle = nullptr);
-	virtual ~BluetoothRadio();
-
-	void* handle();
-	const void* handle() const;
-	bool isValid() const;
-	unsigned long long address() const;
-	std::wstring name() const;
-	unsigned long classOfDevice() const;
-	unsigned short manufacturer() const;
-
-	bool discoverable() const;
-	void setDiscoverable(bool discoverable);
-
-	bool connectable() const;
-	void setConnectable(bool connectable);
-
-	bool operator==(const std::wstring_view name) const;
-	bool operator==(const unsigned long long address) const;
-
-private:
-
-	void*				m_handle;
-	void*				m_radioInfo;
-	bool				m_isValid;
-	unsigned long long	m_address;
-	std::wstring		m_name;
-	unsigned long		m_class;
-	unsigned short		m_lmpSubversion;
-	unsigned short		m_manufacturer;
-};
-
-#endif // bluetoothRadio_h__
+std::string systemTimeToString(const SYSTEMTIME& time);

@@ -18,15 +18,19 @@ OPTION(BUILD_TESTS "Build unit tests" ON)
 # .h files
 list(APPEND HEADER_FILES
 include/bluetooth.h
+include/bluetoothDevice.h
 include/bluetoothException.h
 include/bluetoothRadio.h
+include/bluetoothUtils.h
 )
 
 # .cpp files
 list(APPEND SOURCE_FILES
 src/bluetooth.cpp
+src/bluetoothDevice.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
+src/bluetoothUtils.cpp
 )
 
 # on windows, append headers to source so they show up in visual studio

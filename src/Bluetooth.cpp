@@ -39,6 +39,24 @@ private:
 	HBLUETOOTH_RADIO_FIND m_handle;
 };
 
+class BluetoothFindDeviceHandle
+{
+public:
+
+	BluetoothFindDeviceHandle(HBLUETOOTH_DEVICE_FIND handle) noexcept : m_handle(handle) {}
+	~BluetoothFindDeviceHandle()
+	{
+		// in theory this can fail, but not much we can do about it
+		if (!BluetoothFindDeviceClose(m_handle))
+			assert(true);	// if you hit this assert, you probably need to do some serious debugging
+	}
+	operator HBLUETOOTH_DEVICE_FIND() noexcept { return m_handle; }
+
+private:
+
+	HBLUETOOTH_DEVICE_FIND m_handle;
+};
+
 //--------------------------------------------------------------------------------------------------
 //	METHODS
 //--------------------------------------------------------------------------------------------------
@@ -80,6 +98,55 @@ bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/) const
 }
 
 
+bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
+{
+	if (refreshList || m_remoteDevices.empty())
+	{
+		// this thing is required by the API but is pointless for our purposes. Probably used to
+		// differentiate x86/x64 systems
+		BLUETOOTH_DEVICE_SEARCH_PARAMS btdsp;
+		btdsp.fIssueInquiry = true;
+		btdsp.fReturnAuthenticated = true;
+		btdsp.fReturnConnected = true;
+		btdsp.fReturnRemembered = true;
+		btdsp.fReturnUnknown = true;
+		btdsp.cTimeoutMultiplier = 5;
+		btdsp.dwSize = sizeof(btdsp);
+
+		BLUETOOTH_DEVICE_INFO btdi;
+		btdi.dwSize = sizeof(btdi);
+
+		for (auto& radio : localRadios())
+		{
+			btdsp.hRadio = (HANDLE)radio.handle();
+	
+			// Get the first local radio
+			BluetoothFindDeviceHandle device = BluetoothFindFirstDevice(&btdsp, &btdi);
+			if (device)
+				m_remoteDevices.emplace_back(btdsp.hRadio, &btdi);
+			else
+			{
+				// this PC doesn't have any radios
+				if (GetLastError() == ERROR_NO_MORE_ITEMS)
+					return false;
+				else
+					throw BluetoothException(ERR);
+			}
+	
+			// get the rest of the local radios
+			while (BluetoothFindNextDevice(device, &btdi))
+			{
+				m_remoteDevices.emplace_back(device);
+			}
+	
+			if (GetLastError() != ERROR_NO_MORE_ITEMS)
+				throw BluetoothException(ERR);
+		}
+	}
+
+	return m_remoteDevices.size();
+}
+
 BluetoothRadio& Bluetooth::localRadio(unsigned int index /*= 0*/)
 {
 	enumerateLocalRadios();
@@ -120,14 +187,40 @@ const std::vector<BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= f
 	return m_localRadios;
 }
 
-std::vector<BluetoothRadio>& Bluetooth::remoteDevices(bool refreshList /*= false*/)
+BluetoothDevice& Bluetooth::remoteDevice(unsigned int index /*= 0*/)
 {
-	enumerateLocalRadios(refreshList);
+	return m_remoteDevices.at(index);
+}
+
+BluetoothDevice& Bluetooth::remoteDevice(const std::wstring_view& name, bool refreshList /*= false*/)
+{
+	enumerateRemoteDevices(refreshList);
+
+	auto itr = std::find(m_remoteDevices.begin(), m_remoteDevices.end(), name);
+	return (itr == m_remoteDevices.end()) ? m_invalidDevice : *itr;
+}
+
+const BluetoothDevice& Bluetooth::remoteDevice(unsigned int index /*= 0*/) const
+{
+	return m_remoteDevices.at(index);
+}
+
+const BluetoothDevice& Bluetooth::remoteDevice(const std::wstring_view& name, bool refreshList /*= false*/) const
+{
+	enumerateRemoteDevices(refreshList);
+
+	auto itr = std::find(m_remoteDevices.cbegin(), m_remoteDevices.cend(), name);
+	return (itr == m_remoteDevices.end()) ? m_invalidDevice : *itr;
+}
+
+std::vector<BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/)
+{
+	enumerateRemoteDevices(refreshList);
 	return m_remoteDevices;
 }
 
-const std::vector<BluetoothRadio>& Bluetooth::remoteDevices(bool refreshList /*= false*/) const
+const std::vector<BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/) const
 {
-	enumerateLocalRadios(refreshList);
+	enumerateRemoteDevices(refreshList);
 	return m_remoteDevices;
 }

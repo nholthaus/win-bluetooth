@@ -38,8 +38,8 @@
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef bluetoothRadio_h__
-#define bluetoothRadio_h__
+#ifndef bluetoothDevice_h__
+#define bluetoothDevice_h__
 
 //------------------------------
 //	INCLUDES
@@ -47,44 +47,44 @@
 
 #include <string>
 
-
 //--------------------------------------------------------------------------------------------------
-//	BLUETOOTH RADIO
+//	BLUETOOTH DEVICE
 //--------------------------------------------------------------------------------------------------
-class BluetoothRadio
+class BluetoothDevice
 {
 public:
 
-	BluetoothRadio(void* radioHandle = nullptr);
-	virtual ~BluetoothRadio();
+	BluetoothDevice(void* radioHandle = nullptr, void* deviceInfo = nullptr);
+	virtual ~BluetoothDevice();
 
-	void* handle();
-	const void* handle() const;
-	bool isValid() const;
 	unsigned long long address() const;
 	std::wstring name() const;
 	unsigned long classOfDevice() const;
-	unsigned short manufacturer() const;
 
-	bool discoverable() const;
-	void setDiscoverable(bool discoverable);
-
-	bool connectable() const;
-	void setConnectable(bool connectable);
+	bool isValid() const;
+	bool connected();
+	bool remembered();
+	bool authenticated();
+	std::string_view lastSeen();
+	std::string_view lastUsed();
 
 	bool operator==(const std::wstring_view name) const;
 	bool operator==(const unsigned long long address) const;
 
+protected:
+
+	 void refresh();
+
 private:
 
-	void*				m_handle;
-	void*				m_radioInfo;
-	bool				m_isValid;
-	unsigned long long	m_address;
-	std::wstring		m_name;
-	unsigned long		m_class;
-	unsigned short		m_lmpSubversion;
-	unsigned short		m_manufacturer;
+	void*				m_radioHandle;
+	void*				m_deviceInfo;
+	bool				m_connected;
+	bool				m_remembered;
+	bool				m_authenticated;
+	std::string			m_lastSeen;
+	std::string			m_lastUsed;
+
 };
 
-#endif // bluetoothRadio_h__
+#endif // bluetoothDevice_h__

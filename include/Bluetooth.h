@@ -49,6 +49,7 @@
 #include <vector>
 
 #include <bluetoothRadio.h>
+#include <bluetoothDevice.h>
 
 //-------------------------
 //	FORWARD DECLARATIONS
@@ -62,25 +63,31 @@ class Bluetooth
 {
 public:
 
-	BluetoothRadio& localRadio(unsigned int index = 0);
-	BluetoothRadio& localRadio(const std::wstring_view& name, bool refreshList = false);
-	const BluetoothRadio& localRadio(unsigned int index = 0) const;
-	const BluetoothRadio& localRadio(const std::wstring_view& name, bool refreshList = false) const;
-	std::vector<BluetoothRadio>& localRadios(bool refreshList = false);
-	const std::vector<BluetoothRadio>& localRadios(bool refreshList = false) const;
+	BluetoothRadio&						localRadio(unsigned int index = 0);
+	BluetoothRadio&						localRadio(const std::wstring_view& name, bool refreshList = false);
+	const BluetoothRadio&				localRadio(unsigned int index = 0) const;
+	const BluetoothRadio&				localRadio(const std::wstring_view& name, bool refreshList = false) const;
+	std::vector<BluetoothRadio>&		localRadios(bool refreshList = false);
+	const std::vector<BluetoothRadio>&	localRadios(bool refreshList = false) const;
 
-	std::vector<BluetoothRadio>& remoteDevices(bool refreshList = false);
-	const std::vector<BluetoothRadio>& remoteDevices(bool refreshList = false) const;
+	BluetoothDevice&					remoteDevice(unsigned int index = 0);
+	BluetoothDevice&					remoteDevice(const std::wstring_view& name, bool refreshList = false);
+	const BluetoothDevice&				remoteDevice(unsigned int index = 0) const;
+	const BluetoothDevice&				remoteDevice(const std::wstring_view& name, bool refreshList = false) const;
+	std::vector<BluetoothDevice>&		remoteDevices(bool refreshList = false);
+	const std::vector<BluetoothDevice>& remoteDevices(bool refreshList = false) const;
 
 protected:
 
 	bool enumerateLocalRadios(bool refreshList = false) const;
+	bool enumerateRemoteDevices(bool refreshList = false) const;
 
 private:
 
 	mutable std::vector<BluetoothRadio> m_localRadios;
-	mutable std::vector<BluetoothRadio> m_remoteDevices;
+	mutable std::vector<BluetoothDevice> m_remoteDevices;
 	BluetoothRadio m_invalidRadio;
+	BluetoothDevice m_invalidDevice;
 };
 
 
