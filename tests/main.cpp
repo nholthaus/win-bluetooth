@@ -37,9 +37,10 @@ TEST_F(BluetoothTest, radioInfo)
 
 	// all the test computers have to be added to this list :(
 	addresses[L"DAUNTLESS"] = 92407701068;
+	addresses[L"NIC-PC"] = 71340216032535;
 
 	Bluetooth r;
-	ASSERT_TRUE(addresses.count(r.localRadio().name()));
+	ASSERT_TRUE(addresses.count(r.localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
 	ASSERT_EQ(addresses[r.localRadio().name()], r.localRadio().address());
 }
 
