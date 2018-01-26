@@ -7,42 +7,111 @@
 
 BluetoothDevice::BluetoothDevice(void* radioHandle /*= nullptr*/, void* deviceInfo /*= nullptr*/)
 	: m_radioHandle(radioHandle)
-	, m_deviceInfo(new BLUETOOTH_DEVICE_INFO)
 {
 	if (deviceInfo)
 	{
+		m_deviceInfo = new BLUETOOTH_DEVICE_INFO;	
+
+		auto devinfo = DEVINFO;
 		auto info = static_cast<BLUETOOTH_DEVICE_INFO*>(deviceInfo);
 			
-		DEVINFO->dwSize = info->dwSize;
-		DEVINFO->Address = info->Address;
-		DEVINFO->ulClassofDevice = info->ulClassofDevice;
-		DEVINFO->fConnected = info->fConnected;
-		DEVINFO->fRemembered = info->fRemembered;
-		DEVINFO->fAuthenticated = info->fAuthenticated;
-		DEVINFO->stLastSeen = info->stLastSeen;
-		DEVINFO->stLastUsed = info->stLastUsed;
-		wcscpy_s(DEVINFO->szName, info->szName);
+		wcscpy_s(devinfo->szName, info->szName);
+		devinfo->dwSize = info->dwSize;
+		devinfo->Address = info->Address;
+		devinfo->ulClassofDevice = info->ulClassofDevice;
+		devinfo->fConnected = info->fConnected;
+		devinfo->fRemembered = info->fRemembered;
+		devinfo->fAuthenticated = info->fAuthenticated;
+		devinfo->stLastSeen = info->stLastSeen;
+		devinfo->stLastUsed = info->stLastUsed;
 	}
+}
+
+BluetoothDevice::BluetoothDevice(const BluetoothDevice& other)
+{
+	m_radioHandle = other.m_radioHandle;
+	if (other.m_deviceInfo)
+	{
+		m_deviceInfo = new BLUETOOTH_DEVICE_INFO;
+
+		auto devinfo = DEVINFO;
+		auto info = static_cast<BLUETOOTH_DEVICE_INFO*>(other.m_deviceInfo);
+
+		wcscpy_s(devinfo->szName, info->szName);
+		devinfo->dwSize = info->dwSize;
+		devinfo->Address = info->Address;
+		devinfo->ulClassofDevice = info->ulClassofDevice;
+		devinfo->fConnected = info->fConnected;
+		devinfo->fRemembered = info->fRemembered;
+		devinfo->fAuthenticated = info->fAuthenticated;
+		devinfo->stLastSeen = info->stLastSeen;
+		devinfo->stLastUsed = info->stLastUsed;
+	}
+}
+
+BluetoothDevice::BluetoothDevice(BluetoothDevice&& other)
+{
+	m_radioHandle = other.m_radioHandle; other.m_radioHandle = nullptr;
+	m_deviceInfo = other.m_deviceInfo; other.m_deviceInfo = nullptr;
 }
 
 BluetoothDevice::~BluetoothDevice()
 {
 	delete m_deviceInfo;
+	m_deviceInfo = nullptr;
+}
+
+BluetoothDevice& BluetoothDevice::operator=(const BluetoothDevice& other)
+{
+	m_radioHandle = other.m_radioHandle;
+	if (other.m_deviceInfo)
+	{
+		if(!m_deviceInfo)
+			m_deviceInfo = new BLUETOOTH_DEVICE_INFO;
+
+		auto devinfo = DEVINFO;
+		auto info = static_cast<BLUETOOTH_DEVICE_INFO*>(other.m_deviceInfo);
+
+		wcscpy_s(devinfo->szName, info->szName);
+		devinfo->dwSize = info->dwSize;
+		devinfo->Address = info->Address;
+		devinfo->ulClassofDevice = info->ulClassofDevice;
+		devinfo->fConnected = info->fConnected;
+		devinfo->fRemembered = info->fRemembered;
+		devinfo->fAuthenticated = info->fAuthenticated;
+		devinfo->stLastSeen = info->stLastSeen;
+		devinfo->stLastUsed = info->stLastUsed;
+	}
+	else
+	{
+		delete m_deviceInfo;
+		m_deviceInfo = nullptr;
+	}
+
+	return *this;
+}
+
+BluetoothDevice& BluetoothDevice::operator=(BluetoothDevice&& other)
+{
+	delete m_deviceInfo;
+	m_radioHandle = other.m_radioHandle; other.m_radioHandle = nullptr;
+	m_deviceInfo = other.m_deviceInfo; other.m_deviceInfo = nullptr;
+	return *this;
 }
 
 unsigned long long BluetoothDevice::address() const
 {
-	return DEVINFO->Address.ullLong;
+	return m_deviceInfo ? DEVINFO->Address.ullLong : 0;
 }
 
 std::wstring BluetoothDevice::name() const
 {
-	return DEVINFO->szName;
+	return m_deviceInfo ? DEVINFO->szName : L"INVALID";
 }
 
 unsigned long BluetoothDevice::classOfDevice() const
 {
-	return DEVINFO->ulClassofDevice;
+	return m_deviceInfo ? DEVINFO->ulClassofDevice : 0;
 }
 
 void BluetoothDevice::refresh()
@@ -58,31 +127,31 @@ bool BluetoothDevice::isValid() const
 bool BluetoothDevice::connected()
 {
 	refresh();
-	return m_connected;
+	return m_deviceInfo ? DEVINFO->fConnected : false;
 }
 
 bool BluetoothDevice::remembered()
 {
 	refresh();
-	return m_remembered;
+	return m_deviceInfo ? DEVINFO->fRemembered : false;
 }
 
 bool BluetoothDevice::authenticated()
 {
 	refresh();
-	return m_authenticated;
+	return m_deviceInfo ? DEVINFO->fAuthenticated : false;
 }
 
 std::string_view BluetoothDevice::lastSeen()
 {
 	refresh();
-	return m_lastSeen;
+	return m_deviceInfo ? systemTimeToString(DEVINFO->stLastSeen) : "00-00-0000 00:00:00.000";
 }
 
 std::string_view BluetoothDevice::lastUsed()
 {
 	refresh();
-	return m_lastUsed;
+	return m_deviceInfo ? systemTimeToString(DEVINFO->stLastUsed) : "00-00-0000 00:00:00.000";
 }
 
 bool BluetoothDevice::operator==(const unsigned long long address) const
@@ -92,5 +161,5 @@ bool BluetoothDevice::operator==(const unsigned long long address) const
 
 bool BluetoothDevice::operator==(const std::wstring_view name) const
 {
-	return name == DEVINFO->szName;
+	return (name.compare(DEVINFO->szName) == 0);
 }

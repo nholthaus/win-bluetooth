@@ -110,7 +110,7 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 		btdsp.fReturnConnected = true;
 		btdsp.fReturnRemembered = true;
 		btdsp.fReturnUnknown = true;
-		btdsp.cTimeoutMultiplier = 5;
+		btdsp.cTimeoutMultiplier = 1;
 		btdsp.dwSize = sizeof(btdsp);
 
 		BLUETOOTH_DEVICE_INFO btdi;
@@ -136,7 +136,7 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 			// get the rest of the local radios
 			while (BluetoothFindNextDevice(device, &btdi))
 			{
-				m_remoteDevices.emplace_back(device);
+				m_remoteDevices.emplace_back(btdsp.hRadio, &btdi);
 			}
 	
 			if (GetLastError() != ERROR_NO_MORE_ITEMS)

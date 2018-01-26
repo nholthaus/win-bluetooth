@@ -56,6 +56,10 @@ public:
 
 	BluetoothDevice(void* radioHandle = nullptr, void* deviceInfo = nullptr);
 	virtual ~BluetoothDevice();
+	BluetoothDevice(const BluetoothDevice& other);
+	BluetoothDevice(BluetoothDevice&& other);
+	BluetoothDevice& operator=(const BluetoothDevice& other);
+	BluetoothDevice& operator=(BluetoothDevice&& other);
 
 	unsigned long long address() const;
 	std::wstring name() const;
@@ -77,14 +81,8 @@ protected:
 
 private:
 
-	void*				m_radioHandle;
-	void*				m_deviceInfo;
-	bool				m_connected;
-	bool				m_remembered;
-	bool				m_authenticated;
-	std::string			m_lastSeen;
-	std::string			m_lastUsed;
-
+	void*				m_radioHandle	= nullptr;
+	void*				m_deviceInfo	= nullptr;
 };
 
 #endif // bluetoothDevice_h__
