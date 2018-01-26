@@ -47,3 +47,4 @@
 #include <string>
 
 std::string systemTimeToString(const SYSTEMTIME& time);
+std::wstring bluetoothAddressToString(unsigned long long address);

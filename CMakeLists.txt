@@ -22,6 +22,7 @@ include/bluetoothDevice.h
 include/bluetoothException.h
 include/bluetoothRadio.h
 include/bluetoothUtils.h
+include/bluetoothUuids.h
 )
 
 # .cpp files

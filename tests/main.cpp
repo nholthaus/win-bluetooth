@@ -83,6 +83,12 @@ TEST_F(BluetoothTest, deviceInfo)
 	}
 }
 
+TEST_F(BluetoothTest, connect)
+{
+	Bluetooth r;
+	ASSERT_TRUE(r.localRadio().connectTo(r.remoteDevice(L"RELENTLESS")));
+}
+
 int main(int argc, char* argv[])
 {
 	::testing::InitGoogleTest(&argc, argv);

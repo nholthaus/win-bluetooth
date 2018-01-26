@@ -55,13 +55,14 @@
 //	FORWARD DECLARATIONS
 //-------------------------
 
-
 //--------------------------------------------------------------------------------------------------
 //	CLASS BLUETOOTH
 //--------------------------------------------------------------------------------------------------
 class Bluetooth
 {
 public:
+
+	Bluetooth();
 
 	BluetoothRadio&						localRadio(unsigned int index = 0);
 	BluetoothRadio&						localRadio(const std::wstring_view& name, bool refreshList = false);
@@ -79,8 +80,9 @@ public:
 
 protected:
 
-	bool enumerateLocalRadios(bool refreshList = false) const;
-	bool enumerateRemoteDevices(bool refreshList = false) const;
+	virtual bool init();
+	virtual bool enumerateLocalRadios(bool refreshList = false) const;
+	virtual bool enumerateRemoteDevices(bool refreshList = false) const;
 
 private:
 

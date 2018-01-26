@@ -47,6 +47,11 @@
 
 #include <string>
 
+//------------------------------
+//	TYPE DEFINITIONS
+//------------------------------
+
+using BluetoothAddress = unsigned long long;
 
 //--------------------------------------------------------------------------------------------------
 //	BLUETOOTH RADIO
@@ -71,6 +76,8 @@ public:
 
 	bool connectable() const;
 	void setConnectable(bool connectable);
+
+	bool connectTo(BluetoothAddress address);
 
 	bool operator==(const std::wstring_view name) const;
 	bool operator==(const unsigned long long address) const;

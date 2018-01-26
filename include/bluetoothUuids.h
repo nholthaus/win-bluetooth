@@ -2,6 +2,8 @@
 // 
 ///	@project WIN-BLUETOOTH
 //
+//			!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
+//
 //--------------------------------------------------------------------------------------------------
 //
 // The MIT License (MIT)
@@ -32,65 +34,7 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothRadio.h
-/// @brief	Description of a single bluetooth radio
+/// @file	bluetoothUuids.h
+/// @brief	Known bluetooth service class Uuids
 //
 //--------------------------------------------------------------------------------------------------
-
-#pragma once
-#ifndef bluetoothDevice_h__
-#define bluetoothDevice_h__
-
-//------------------------------
-//	INCLUDES
-//------------------------------
-
-#include <string>
-
-//------------------------------
-//	TYPE DEFINITIONS
-//------------------------------
-
-using BluetoothAddress = unsigned long long;
-
-//--------------------------------------------------------------------------------------------------
-//	BLUETOOTH DEVICE
-//--------------------------------------------------------------------------------------------------
-class BluetoothDevice
-{
-public:
-
-	BluetoothDevice(void* radioHandle = nullptr, void* deviceInfo = nullptr);
-	virtual ~BluetoothDevice();
-	BluetoothDevice(const BluetoothDevice& other);
-	BluetoothDevice(BluetoothDevice&& other);
-	BluetoothDevice& operator=(const BluetoothDevice& other);
-	BluetoothDevice& operator=(BluetoothDevice&& other);
-
-	BluetoothAddress address() const;
-	std::wstring addressString() const;
-	std::wstring name() const;
-	unsigned long classOfDevice() const;
-
-	bool isValid() const;
-	bool connected();
-	bool remembered();
-	bool authenticated();
-	std::string_view lastSeen();
-	std::string_view lastUsed();
-
-	bool operator==(const std::wstring_view name) const;
-	bool operator==(const unsigned long long address) const;
-	operator BluetoothAddress() const;
-
-protected:
-
-	 void refresh();
-
-private:
-
-	void*				m_radioHandle	= nullptr;
-	void*				m_deviceInfo	= nullptr;
-};
-
-#endif // bluetoothDevice_h__

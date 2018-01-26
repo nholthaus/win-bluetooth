@@ -14,7 +14,7 @@ BluetoothException::BluetoothException(HRESULT result)
 		NULL,    // unused with FORMAT_MESSAGE_FROM_SYSTEM
 		result,
 		MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-		(LPTSTR)&m_what,  // output 
+		(LPSTR)&m_what,  // output 
 		0, // minimum size for output buffer
 		NULL);   // arguments - see note 
 

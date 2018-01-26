@@ -6,10 +6,12 @@
 #include <cassert>
 #include <algorithm>
 
-#include <windows.h>
+#include <winsock2.h>
+#include <ws2bth.h>
 #include <BluetoothAPIs.h>
 
 #pragma comment(lib, "Bthprops.lib")
+#pragma comment(lib, "Ws2_32.lib")
 
 //------------------------------
 //	MACROS
@@ -98,6 +100,16 @@ bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/) const
 }
 
 
+bool Bluetooth::init()
+{
+	// Ask for Winsock version 2.2.
+	WSADATA WSAData = { 0 };
+	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
+		throw BluetoothException("Unable to initialize Winsock version 2.2");
+
+	return true;
+}
+
 bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 {
 	if (refreshList || m_remoteDevices.empty())
@@ -145,6 +157,11 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 	}
 
 	return m_remoteDevices.size();
+}
+
+Bluetooth::Bluetooth()
+{
+	init();
 }
 
 BluetoothRadio& Bluetooth::localRadio(unsigned int index /*= 0*/)
