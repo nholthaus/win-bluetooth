@@ -1,2 +1,6 @@
 #include <Bluetooth.h>
 #include <bluetoothException.h>
+
+#ifdef _WINDOWS_
+static_assert(false, "Don't include windows.h or bluetoothUtils.h in header files!");
+#endif
