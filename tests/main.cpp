@@ -77,7 +77,10 @@ TEST_F(BluetoothTest, deviceInfo)
 
 	Bluetooth r;
 	for (auto&[name, address] : addresses)
-		ASSERT_EQ(address, r.remoteDevice(name).address()) << "Did not find remote device: " << name;
+	{
+		ASSERT_EQ(name, r.remoteDevice(name).name()) << "Did not find remote device: " << name;
+		ASSERT_EQ(address, r.remoteDevice(name).address());
+	}
 }
 
 int main(int argc, char* argv[])
