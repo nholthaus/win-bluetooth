@@ -38,3 +38,32 @@
 /// @brief	Known bluetooth service class Uuids
 //
 //--------------------------------------------------------------------------------------------------
+
+//------------------------------
+//	INCLDUES
+//------------------------------
+
+#include <initguid.h>
+#include <unordered_map>
+
+enum class Protocol
+{
+	RFCOMM,
+	SPP,
+	MSDN,
+};
+
+//--------------------------------------------------------------------------------------------------
+//	BLUETOOTH UUID
+//--------------------------------------------------------------------------------------------------
+class BluetoothUuid
+{
+public:
+
+	BluetoothUuid();
+	const GUID operator()(Protocol uuid) const;
+
+private:
+
+	static std::unordered_map<Protocol, GUID> m_uuids;
+};

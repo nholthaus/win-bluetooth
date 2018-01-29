@@ -1,14 +1,13 @@
 #include <bluetoothRadio.h>
 #include <bluetoothException.h>
+#include <bluetoothUuids.h>
 
 #include <winsock2.h>
 #include <bluetoothapis.h>
 #include <ws2bth.h>
 #include <initguid.h>
 
-// {B62C4E8D-62CC-404b-BBBF-BF3E3BBB1374}
-DEFINE_GUID(g_guidServiceClass, 0xb62c4e8d, 0x62cc, 0x404b, 0xbb, 0xbf, 0xbf, 0x3e, 0x3b, 0xbb, 0x13, 0x74);
-//DEFINE_GUID(g_guidServiceClass, 0x00030000, 0x0000, 0x1000, 0x80, 0x00, 0x00, 0x80, 0x5F, 0x9B, 0x34, 0xFB);
+std::unique_ptr<BluetoothUuid> BluetoothRadio::m_uuid = std::make_unique<BluetoothUuid>();
 
 BluetoothRadio::BluetoothRadio(void* radioHandle)
 	: m_handle(radioHandle)
@@ -47,7 +46,7 @@ bool BluetoothRadio::connectTo(BluetoothAddress address)
 
 	SOCKADDR_BTH btAddress;
 	btAddress.addressFamily = AF_BTH;
-	btAddress.serviceClassId = g_guidServiceClass;
+	btAddress.serviceClassId = (*m_uuid)(Protocol::MSDN);
 	btAddress.port = 0;
 	btAddress.btAddr = address;
 

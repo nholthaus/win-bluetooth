@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <unordered_map>
 #include <bluetoothUtils.h>
+#include <iostream>
 
 class BluetoothUtils : public ::testing::Test {
 protected:
@@ -66,6 +67,10 @@ TEST_F(BluetoothTest, radioInfo)
 	Bluetooth r;
 	ASSERT_TRUE(addresses.count(r.localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
 	ASSERT_EQ(addresses[r.localRadio().name()], r.localRadio().address());
+
+	std::cout << "LOCAL RADIOS:" << std::endl;
+	for (const auto& radio : r.localRadios())
+		std::wcout << "    " << radio.name() << std::endl;
 }
 
 TEST_F(BluetoothTest, deviceInfo)
@@ -81,6 +86,10 @@ TEST_F(BluetoothTest, deviceInfo)
 		ASSERT_EQ(name, r.remoteDevice(name).name()) << "Did not find remote device: " << name;
 		ASSERT_EQ(address, r.remoteDevice(name).address());
 	}
+
+	std::cout << "REMOTE DEVICES:" << std::endl;
+	for (const auto& device : r.remoteDevices())
+		std::wcout << "    " << device.name() << std::endl;
 }
 
 TEST_F(BluetoothTest, connect)

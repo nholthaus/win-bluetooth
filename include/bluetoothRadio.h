@@ -45,7 +45,14 @@
 //	INCLUDES
 //------------------------------
 
+#include <memory>
 #include <string>
+
+//------------------------------
+//	FORWARD DECLARATIONS
+//------------------------------
+
+class BluetoothUuid;
 
 //------------------------------
 //	TYPE DEFINITIONS
@@ -84,14 +91,15 @@ public:
 
 private:
 
-	void*				m_handle;
-	void*				m_radioInfo;
-	bool				m_isValid;
-	unsigned long long	m_address;
-	std::wstring		m_name;
-	unsigned long		m_class;
-	unsigned short		m_lmpSubversion;
-	unsigned short		m_manufacturer;
+	void*									m_handle;
+	void*									m_radioInfo;
+	bool									m_isValid;
+	unsigned long long						m_address;
+	std::wstring							m_name;
+	unsigned long							m_class;
+	unsigned short							m_lmpSubversion;
+	unsigned short							m_manufacturer;
+	static std::unique_ptr<BluetoothUuid>	m_uuid;
 };
 
 #endif // bluetoothRadio_h__

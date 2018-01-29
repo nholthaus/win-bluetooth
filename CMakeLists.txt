@@ -32,6 +32,7 @@ src/bluetoothDevice.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
 src/bluetoothUtils.cpp
+src/bluetoothUuids.cpp
 )
 
 # on windows, append headers to source so they show up in visual studio
