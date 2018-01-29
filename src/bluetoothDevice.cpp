@@ -2,6 +2,7 @@
 #include <windows.h>
 #include <bluetoothapis.h>
 #include <bluetoothUtils.h>
+#include <bluetoothAddress.h>
 
 #define DEVINFO static_cast<BLUETOOTH_DEVICE_INFO*>(m_deviceInfo)
 
@@ -99,7 +100,7 @@ BluetoothDevice& BluetoothDevice::operator=(BluetoothDevice&& other)
 	return *this;
 }
 
-unsigned long long BluetoothDevice::address() const
+BluetoothAddress BluetoothDevice::address() const
 {
 	return m_deviceInfo ? DEVINFO->Address.ullLong : 0;
 }
@@ -159,12 +160,17 @@ std::string_view BluetoothDevice::lastUsed()
 	return m_deviceInfo ? systemTimeToString(DEVINFO->stLastUsed) : "00-00-0000 00:00:00.000";
 }
 
-bool BluetoothDevice::operator==(const unsigned long long address) const
+bool BluetoothDevice::operator<(const BluetoothDevice& other)
+{
+	return address() < other.address();
+}
+
+bool BluetoothDevice::operator==(BluetoothAddress address) const
 {
 	return address == DEVINFO->Address.ullLong;
 }
 
-bool BluetoothDevice::operator==(const std::wstring_view name) const
+bool BluetoothDevice::operator==(const std::wstring_view& name) const
 {
 	return (name.compare(DEVINFO->szName) == 0);
 }

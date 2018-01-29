@@ -32,74 +32,40 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothRadio.h
-/// @brief	Description of a single bluetooth radio
+/// @file	bluetoothAddress.h
+/// @brief	Description of a single bluetooth address
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef bluetoothRadio_h__
-#define bluetoothRadio_h__
+#ifndef bluetoothAddress_h__
+#define bluetoothAddress_h__
 
-//------------------------------
-//	INCLUDES
-//------------------------------
-
-#include <memory>
+#include <cstdint>
 #include <string>
 
-//------------------------------
-//	FORWARD DECLARATIONS
-//------------------------------
-
-class BluetoothUuid;
-class BluetoothAddress;
-
-//------------------------------
-//	TYPE DEFINITIONS
-//------------------------------
-
-
-//--------------------------------------------------------------------------------------------------
-//	BLUETOOTH RADIO
-//--------------------------------------------------------------------------------------------------
-class BluetoothRadio
+class BluetoothAddress
 {
 public:
 
-	BluetoothRadio(void* radioHandle = nullptr);
-	virtual ~BluetoothRadio();
+	BluetoothAddress() = default;
+	BluetoothAddress(uint64_t address);
+	BluetoothAddress(const std::wstring& name);
 
-	void* handle();
-	const void* handle() const;
-	bool isValid() const;
-	unsigned long long address() const;
-	std::wstring name() const;
-	unsigned long classOfDevice() const;
-	unsigned short manufacturer() const;
+	void clear();
+	bool isNull() const;
 
-	bool discoverable() const;
-	void setDiscoverable(bool discoverable);
-
-	bool connectable() const;
-	void setConnectable(bool connectable);
-
-	bool connectTo(BluetoothAddress address);
-
-	bool operator==(const std::wstring_view name) const;
-	bool operator==(const unsigned long long address) const;
+	operator std::wstring() const;
+	operator uint64_t() const;
+	
+	bool operator==(uint64_t other) const;
+	bool operator==(const BluetoothAddress& other) const;
+	bool operator!=(const BluetoothAddress& other) const;
+	bool operator<(const BluetoothAddress& other) const;
 
 private:
 
-	void*									m_handle;
-	void*									m_radioInfo;
-	bool									m_isValid;
-	unsigned long long						m_address;
-	std::wstring							m_name;
-	unsigned long							m_class;
-	unsigned short							m_lmpSubversion;
-	unsigned short							m_manufacturer;
-	static std::unique_ptr<BluetoothUuid>	m_uuid;
+	uint64_t	m_address = 0;
 };
 
-#endif // bluetoothRadio_h__
+#endif // bluetoothAddress_h__

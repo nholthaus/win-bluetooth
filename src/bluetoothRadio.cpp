@@ -1,11 +1,14 @@
 #include <bluetoothRadio.h>
 #include <bluetoothException.h>
 #include <bluetoothUuids.h>
+#include <bluetoothAddress.h>
 
 #include <winsock2.h>
 #include <bluetoothapis.h>
 #include <ws2bth.h>
 #include <initguid.h>
+
+#define ERR HRESULT_FROM_WIN32(GetLastError())
 
 std::unique_ptr<BluetoothUuid> BluetoothRadio::m_uuid = std::make_unique<BluetoothUuid>();
 
@@ -46,21 +49,18 @@ bool BluetoothRadio::connectTo(BluetoothAddress address)
 
 	SOCKADDR_BTH btAddress;
 	btAddress.addressFamily = AF_BTH;
-	btAddress.serviceClassId = (*m_uuid)(Protocol::MSDN);
+	btAddress.serviceClassId = (*m_uuid)[Protocol::MSDNBluetoothConnectionExample];
 	btAddress.port = 0;
 	btAddress.btAddr = address;
 
 	// create a socket
 	SOCKET sock = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
 	if (sock == INVALID_SOCKET) 
-	{
 		throw BluetoothException(HRESULT_FROM_WIN32(WSAGetLastError()));
-		return false;
-	}
 
 	// connect it to the remote device
 	if(SOCKET_ERROR == connect(sock, (struct sockaddr *) &btAddress, sizeof(SOCKADDR_BTH)))
-		throw BluetoothException(HRESULT_FROM_WIN32(WSAGetLastError()));
+		throw BluetoothException("Bluetooth connection failed");
 
 	return true;
 }
@@ -77,7 +77,11 @@ bool BluetoothRadio::discoverable() const
 
 void BluetoothRadio::setDiscoverable(bool enable)
 {
+	setConnectable(enable);
 	BluetoothEnableDiscovery(m_handle, enable);
+
+	if(discoverable() != enable)
+		throw BluetoothException("Could not change discoverable state");
 }
 
 bool BluetoothRadio::connectable() const
@@ -88,6 +92,9 @@ bool BluetoothRadio::connectable() const
 void BluetoothRadio::setConnectable(bool connectable)
 {
 	BluetoothEnableIncomingConnections(m_handle, connectable);
+
+	if(connectable != this->connectable())
+		throw BluetoothException("Could not change connection state");
 }
 
 void* BluetoothRadio::handle()

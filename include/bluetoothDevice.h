@@ -46,12 +46,16 @@
 //------------------------------
 
 #include <string>
+#include <bluetoothAddress.h>
+
+//------------------------------
+//	FORWARD DECLARATIONS
+//------------------------------
+
 
 //------------------------------
 //	TYPE DEFINITIONS
 //------------------------------
-
-using BluetoothAddress = unsigned long long;
 
 //--------------------------------------------------------------------------------------------------
 //	BLUETOOTH DEVICE
@@ -79,8 +83,9 @@ public:
 	std::string_view lastSeen();
 	std::string_view lastUsed();
 
-	bool operator==(const std::wstring_view name) const;
-	bool operator==(const unsigned long long address) const;
+	bool operator<(const BluetoothDevice& other);
+	bool operator==(const std::wstring_view& name) const;
+	bool operator==(BluetoothAddress address) const;
 	operator BluetoothAddress() const;
 
 protected:

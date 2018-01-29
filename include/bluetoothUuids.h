@@ -2,7 +2,7 @@
 // 
 ///	@project WIN-BLUETOOTH
 //
-//			!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
+//		!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -39,6 +39,10 @@
 //
 //--------------------------------------------------------------------------------------------------
 
+#pragma once
+#ifndef bluetoothUuids_h__
+#define bluetoothUuids_h__
+
 //------------------------------
 //	INCLDUES
 //------------------------------
@@ -50,7 +54,7 @@ enum class Protocol
 {
 	RFCOMM,
 	SPP,
-	MSDN,
+	MSDNBluetoothConnectionExample,
 };
 
 //--------------------------------------------------------------------------------------------------
@@ -60,10 +64,12 @@ class BluetoothUuid
 {
 public:
 
-	BluetoothUuid();
-	const GUID operator()(Protocol uuid) const;
+	const GUID operator[](Protocol uuid) const {return *(m_uuids.at(uuid));}
 
 private:
 
-	static std::unordered_map<Protocol, GUID> m_uuids;
+	operator int() const;
+	static std::unordered_map<Protocol, const GUID*> m_uuids;
 };
+
+#endif // bluetoothUuids_h__

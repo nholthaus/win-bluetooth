@@ -25,5 +25,3 @@ if(GTAGS)
 	add_custom_target(gtags COMMAND gtags WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} COMMENT "Generating intellisense data...")
 	add_dependencies(${PROJECT_NAME} gtags)
 endif(GTAGS)
-
-

@@ -18,6 +18,7 @@ OPTION(BUILD_TESTS "Build unit tests" ON)
 # .h files
 list(APPEND HEADER_FILES
 include/bluetooth.h
+include/bluetoothAddress.h
 include/bluetoothDevice.h
 include/bluetoothException.h
 include/bluetoothRadio.h
@@ -28,6 +29,7 @@ include/bluetoothUuids.h
 # .cpp files
 list(APPEND SOURCE_FILES
 src/bluetooth.cpp
+src/bluetoothAddress.cpp
 src/bluetoothDevice.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
@@ -116,12 +118,12 @@ source_group(continuous-integration REGULAR_EXPRESSION ".*[.]yml")
 #	ADDITIONAL LIBRARIES
 #-------------------------------------------------------------------------------
 
-# list(APPEND LIBRARIES
-# 
-# )
-# 
-# # Remove duplicate library dependencies. 
-# list(REMOVE_DUPLICATES LIBRARIES)
+#list(APPEND LIBRARIES
+#
+#)
+#
+## Remove duplicate library dependencies. 
+#list(REMOVE_DUPLICATES LIBRARIES)
 
 #-------------------------------------------------------------------------------
 #	ADDITIONAL INCLUDE DIRECTORIES

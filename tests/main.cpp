@@ -56,6 +56,36 @@ TEST_F(BluetoothTest, enumerateLocalRadios)
 	ASSERT_FALSE(r.localRadios().empty());
 }
 
+TEST_F(BluetoothTest, discoverable)
+{
+	Bluetooth r;
+	ASSERT_FALSE(r.localRadios().empty());
+
+	r.localRadio().setDiscoverable(true);
+	ASSERT_TRUE(r.localRadio().discoverable());
+
+#ifndef _WIN32
+	// windows doesn't let you turn off discovery
+	r.localRadio().setDiscoverable(false);
+	ASSERT_FALSE(r.localRadio().discoverable());
+#endif
+}
+
+TEST_F(BluetoothTest, connectable)
+{
+	Bluetooth r;
+	ASSERT_FALSE(r.localRadios().empty());
+
+	r.localRadio().setConnectable(true);
+	ASSERT_TRUE(r.localRadio().connectable());
+
+#ifndef _WIN32
+	// windows doesn't let you turn off connectability
+	r.localRadio().setConnectable(false);
+	ASSERT_FALSE(r.localRadio().connectable());
+#endif
+}
+
 TEST_F(BluetoothTest, radioInfo)
 {
 	std::unordered_map<std::wstring, unsigned long long> addresses;
