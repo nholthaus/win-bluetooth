@@ -5,6 +5,7 @@
 #include <utility>
 #include <cassert>
 #include <algorithm>
+#include <QHostInfo>
 
 #include <winsock2.h>
 #include <ws2bth.h>
@@ -75,8 +76,11 @@ bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/) const
 
 		// Get the first local radio
 		BluetoothFindRadioHandle radioFindHandle = BluetoothFindFirstRadio(&btfrp, &radio);
-		if (radio)
-			m_localRadios.emplace_back(radio);
+		if (radio) 
+		{
+			BluetoothRadio r(radio);
+			m_localRadios[r.name()] = std::move(r);
+		}
 		else
 		{
 			// this PC doesn't have any radios
@@ -89,7 +93,8 @@ bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/) const
 		// get the rest of the local radios
 		while (BluetoothFindNextRadio(radioFindHandle, &radio))
 		{
-			m_localRadios.emplace_back(radio);
+			BluetoothRadio r(radio);
+			m_localRadios[r.name()] = std::move(r);
 		}
 
 		if (GetLastError() != ERROR_NO_MORE_ITEMS)
@@ -128,14 +133,16 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 		BLUETOOTH_DEVICE_INFO btdi;
 		btdi.dwSize = sizeof(btdi);
 
-		for (auto& radio : localRadios())
+		for (const auto& [name, radio] : localRadios())
 		{
 			btdsp.hRadio = (HANDLE)radio.handle();
 	
 			// Get the first local radio
 			BluetoothFindDeviceHandle device = BluetoothFindFirstDevice(&btdsp, &btdi);
-			if (device)
-				m_remoteDevices.emplace_back(btdsp.hRadio, &btdi);
+			if (device) 
+			{
+				m_remoteDevices.emplace(name, btdsp.hRadio, &btdi);
+			}
 			else
 			{
 				// this PC doesn't have any radios
@@ -148,7 +155,8 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 			// get the rest of the local radios
 			while (BluetoothFindNextDevice(device, &btdi))
 			{
-				m_remoteDevices.emplace_back(btdsp.hRadio, &btdi);
+				BluetoothDevice d(btdsp.hRadio, &btdi);
+				m_remoteDevices[d.name()] = std::move(d);
 			}
 	
 			if (GetLastError() != ERROR_NO_MORE_ITEMS)
@@ -164,79 +172,69 @@ Bluetooth::Bluetooth()
 	init();
 }
 
-BluetoothRadio& Bluetooth::localRadio(unsigned int index /*= 0*/)
-{
-	enumerateLocalRadios();
-	return m_localRadios.at(index);
-}
-
-const BluetoothRadio& Bluetooth::localRadio(unsigned int index /*= 0*/) const
-{
-	enumerateLocalRadios();
-	return m_localRadios.at(index);
-}
-
-BluetoothRadio& Bluetooth::localRadio(const std::wstring_view& name, bool refreshList /*= false*/)
+BluetoothRadio& Bluetooth::localRadio(const QString& name, bool refreshList /*= false*/)
 {
 	enumerateLocalRadios(refreshList);
-
-	auto itr = std::find(m_localRadios.begin(), m_localRadios.end(), name);
-	return (itr == m_localRadios.end()) ? m_invalidRadio : *itr;
+	return m_localRadios.count(name) ? m_localRadios[name] : m_invalidRadio;
 }
 
-const BluetoothRadio& Bluetooth::localRadio(const std::wstring_view& name, bool refreshList /*= false*/) const
+const BluetoothRadio& Bluetooth::localRadio(const QString& name, bool refreshList /*= false*/) const
 {
 	enumerateLocalRadios(refreshList);
-
-	auto itr = std::find(m_localRadios.cbegin(), m_localRadios.cend(), name);
-	return (itr == m_localRadios.end()) ? m_invalidRadio : *itr;
+	return m_localRadios.count(name) ? m_localRadios[name] : m_invalidRadio;
 }
 
-std::vector<BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/)
+BluetoothRadio& Bluetooth::localRadio(bool refreshList /*= false*/)
+{
+	return localRadio(QHostInfo::localHostName().toUpper(), refreshList);
+}
+
+const BluetoothRadio& Bluetooth::localRadio(bool refreshList /*= false*/) const
+{
+	return localRadio(QHostInfo::localHostName().toUpper(), refreshList);
+}
+
+std::unordered_map<QString, BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/)
 {
 	enumerateLocalRadios(refreshList);
 	return m_localRadios;
 }
 
-const std::vector<BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/) const
+const std::unordered_map<QString, BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/) const
 {
 	enumerateLocalRadios(refreshList);
 	return m_localRadios;
 }
 
-BluetoothDevice& Bluetooth::remoteDevice(unsigned int index /*= 0*/)
-{
-	return m_remoteDevices.at(index);
-}
-
-BluetoothDevice& Bluetooth::remoteDevice(const std::wstring_view& name, bool refreshList /*= false*/)
+BluetoothDevice& Bluetooth::remoteDevice(const QString& name, bool refreshList /*= false*/)
 {
 	enumerateRemoteDevices(refreshList);
-
-	auto itr = std::find(m_remoteDevices.begin(), m_remoteDevices.end(), name);
-	return (itr == m_remoteDevices.end()) ? m_invalidDevice : *itr;
+	return m_remoteDevices.count(name) ? m_remoteDevices[name] : m_invalidDevice;
 }
 
-const BluetoothDevice& Bluetooth::remoteDevice(unsigned int index /*= 0*/) const
-{
-	return m_remoteDevices.at(index);
-}
-
-const BluetoothDevice& Bluetooth::remoteDevice(const std::wstring_view& name, bool refreshList /*= false*/) const
+const BluetoothDevice& Bluetooth::remoteDevice(const QString& name, bool refreshList /*= false*/) const
 {
 	enumerateRemoteDevices(refreshList);
-
-	auto itr = std::find(m_remoteDevices.cbegin(), m_remoteDevices.cend(), name);
-	return (itr == m_remoteDevices.end()) ? m_invalidDevice : *itr;
+	return m_remoteDevices.count(name) ? m_remoteDevices[name] : m_invalidDevice;
 }
 
-std::vector<BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/)
+BluetoothDevice& Bluetooth::remoteDevice(bool refreshList /*= false*/)
+{
+	return remoteDevice(QHostInfo::localHostName().toUpper(), refreshList);
+}
+
+const BluetoothDevice& Bluetooth::remoteDevice(bool refreshList /*= false*/) const
+{
+	return remoteDevice(QHostInfo::localHostName().toUpper(), refreshList);
+}
+
+std::unordered_map<QString, BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/)
 {
 	enumerateRemoteDevices(refreshList);
 	return m_remoteDevices;
 }
 
-const std::vector<BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/) const
+const std::unordered_map<QString, BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/) const
 {
 	enumerateRemoteDevices(refreshList);
 	return m_remoteDevices;

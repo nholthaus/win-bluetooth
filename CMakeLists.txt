@@ -4,6 +4,7 @@
 
 cmake_minimum_required(VERSION 2.8.12)
 SET(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(QT_MINIMUM_VERSION 5.9.0)
 
 #-------------------------------------------------------------------------------
 #	BUILD OPTIONS
@@ -72,6 +73,41 @@ endif()
 PROJECT(${PROJECT_NAME})
 
 #-------------------------------------------------------------------------------
+#	Qt Settings
+#-------------------------------------------------------------------------------
+
+# Required Qt settings
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_AUTOUIC ON)
+set(QT_USE_QTMAIN TRUE)
+
+# Setup the cmake prefix path so Qt can be found. Use the QTDIR variable if defined
+if(NOT DEFINED ENV{QTDIR})
+	MESSAGE(STATUS "QTDIR environment variable not set. Be sure to set the QTDIR
+	cmake cache variable to the Qt root install location")
+endif()
+
+set(QTDIR $ENV{QTDIR} CACHE STRING "Qt install path")
+list(APPEND CMAKE_PREFIX_PATH ${QTDIR})
+
+# Find the necessary Qt5 modules
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5Widgets REQUIRED)
+find_package(Qt5Network REQUIRED)
+
+# Test for supported Qt version
+find_program(QMAKE_EXECUTABLE NAMES qmake HINTS ${QTDIR} ENV QTDIR PATH_SUFFIXES bin)
+execute_process(COMMAND ${QMAKE_EXECUTABLE} -query QT_VERSION OUTPUT_VARIABLE QT_VERSION)
+if(QT_VERSION VERSION_LESS QT_MINIMUM_VERSION)
+	MESSAGE(FATAL_ERROR "Minimum supported Qt version: ${QT_MINIMUM_VERSION}. Installed version: ${QT_VERSION}")
+endif()
+
+# find thread library 
+find_package(Threads REQUIRED)
+
+#-------------------------------------------------------------------------------
 #	RESOURCES
 #-------------------------------------------------------------------------------
 
@@ -118,12 +154,16 @@ source_group(continuous-integration REGULAR_EXPRESSION ".*[.]yml")
 #	ADDITIONAL LIBRARIES
 #-------------------------------------------------------------------------------
 
-#list(APPEND LIBRARIES
-#
-#)
-#
-## Remove duplicate library dependencies. 
-#list(REMOVE_DUPLICATES LIBRARIES)
+list(APPEND LIBRARIES
+Qt5::Core
+Qt5::Gui
+Qt5::Widgets
+Qt5::Network
+Threads::Threads
+)
+
+# Remove duplicate library dependencies. 
+list(REMOVE_DUPLICATES LIBRARIES)
 
 #-------------------------------------------------------------------------------
 #	ADDITIONAL INCLUDE DIRECTORIES

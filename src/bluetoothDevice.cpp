@@ -105,14 +105,14 @@ BluetoothAddress BluetoothDevice::address() const
 	return m_deviceInfo ? DEVINFO->Address.ullLong : 0;
 }
 
-std::wstring BluetoothDevice::addressString() const
+QString BluetoothDevice::addressString() const
 {
-	return bluetoothAddressToString(address());
+	return address();
 }
 
-std::wstring BluetoothDevice::name() const
+QString BluetoothDevice::name() const
 {
-	return m_deviceInfo ? DEVINFO->szName : L"INVALID";
+	return m_deviceInfo ? QString::fromWCharArray(DEVINFO->szName) : "INVALID";
 }
 
 unsigned long BluetoothDevice::classOfDevice() const
@@ -170,9 +170,9 @@ bool BluetoothDevice::operator==(BluetoothAddress address) const
 	return address == DEVINFO->Address.ullLong;
 }
 
-bool BluetoothDevice::operator==(const std::wstring_view& name) const
+bool BluetoothDevice::operator==(const QString& name) const
 {
-	return (name.compare(DEVINFO->szName) == 0);
+	return (name.compare(QString::fromWCharArray(DEVINFO->szName)) == 0);
 }
 
 BluetoothDevice::operator BluetoothAddress() const

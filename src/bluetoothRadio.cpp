@@ -20,7 +20,7 @@ BluetoothRadio::BluetoothRadio(void* radioHandle)
 	{
 		m_isValid = false;
 		m_address = 0;
-		m_name = L"INVALID";
+		m_name = "INVALID";
 	}
 	else
 	{
@@ -33,8 +33,35 @@ BluetoothRadio::BluetoothRadio(void* radioHandle)
 		m_class = info->ulClassofDevice;
 		m_lmpSubversion = info->lmpSubversion;
 		m_manufacturer = info->manufacturer;
-		m_name = info->szName;
+		m_name = QString::fromWCharArray(info->szName);
 	}
+}
+
+BluetoothRadio::BluetoothRadio(BluetoothRadio&& other)
+	: m_handle(other.m_handle)
+	, m_radioInfo(other.m_radioInfo)
+	, m_isValid(std::move(other.m_isValid))
+	, m_address(std::move(other.m_address))
+	, m_name(std::move(other.m_name))
+	, m_class(std::move(other.m_class))
+	, m_lmpSubversion(other.m_lmpSubversion)
+	, m_manufacturer(other.m_manufacturer)
+{
+	other.m_handle = nullptr;
+	other.m_radioInfo = nullptr;
+}
+
+BluetoothRadio& BluetoothRadio::operator=(BluetoothRadio&& other)
+{
+	m_handle = other.m_handle; other.m_handle = nullptr;
+	m_radioInfo = other.m_radioInfo; other.m_radioInfo = nullptr;
+	m_isValid = std::move(other.m_isValid);
+	m_address = std::move(other.m_address);
+	m_name = std::move(other.m_name);
+	m_class = std::move(other.m_class);
+	m_lmpSubversion = other.m_lmpSubversion;
+	m_manufacturer = other.m_manufacturer;
+	return *this;
 }
 
 BluetoothRadio::~BluetoothRadio()
@@ -117,7 +144,7 @@ unsigned long long BluetoothRadio::address() const
 	return m_address;
 }
 
-std::wstring BluetoothRadio::name() const
+QString BluetoothRadio::name() const
 {
 	return m_name;
 }
@@ -132,7 +159,7 @@ bool BluetoothRadio::operator==(const unsigned long long address) const
 	return address == m_address;
 }
 
-bool BluetoothRadio::operator==(const std::wstring_view name) const
+bool BluetoothRadio::operator==(const QString& name) const
 {
 	return name == m_name;
 }

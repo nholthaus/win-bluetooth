@@ -1,8 +1,6 @@
 #include "bluetoothAddress.h"
 
 #include <algorithm>
-#include <sstream>
-#include <iomanip>
 
 BluetoothAddress::BluetoothAddress(uint64_t address)
 	: m_address(address)
@@ -10,11 +8,11 @@ BluetoothAddress::BluetoothAddress(uint64_t address)
 
 }
 
-BluetoothAddress::BluetoothAddress(const std::wstring& name)
+BluetoothAddress::BluetoothAddress(const QString& name)
 {
-	std::wstring str = name;
-	str.erase(std::remove_if(str.begin(), str.end(), [](wchar_t x) {return x == L':'; }));
-	m_address = (uint64_t)wcstol(str.c_str(), nullptr, 16);
+	QString str = name;
+	str.remove(':');
+	m_address = str.toULongLong(nullptr, 16);
 }
 
 void BluetoothAddress::clear()
@@ -37,6 +35,11 @@ bool BluetoothAddress::operator==(uint64_t other) const
 	return m_address == other;
 }
 
+bool BluetoothAddress::operator==(const QString& other) const
+{
+	return QString(*this) == other.toUpper();
+}
+
 bool BluetoothAddress::operator<(const BluetoothAddress& other) const
 {
 	return m_address < other.m_address;
@@ -52,16 +55,11 @@ bool BluetoothAddress::operator==(const BluetoothAddress& other) const
 	return m_address == other.m_address;
 }
 
-BluetoothAddress::operator std::wstring() const
+BluetoothAddress::operator QString() const
 {
-	std::wstringstream ss;
-	ss << std::setfill(L'0') << std::setw(12) << std::hex << m_address;
-	std::wstring s = ss.str();
-	ss.str(L"");
-	for (int i = 0; i < s.size(); i++) {
-		if (i % 2 == 0 && i) ss << ':';
-		ss << s[i];
-	}
-	return ss.str();
+	QString s = QString("%1").arg(m_address, 12, 16, QChar('0'));
+	for (int i = 2; i < s.size(); i += 2 + 1)
+		s.insert(i, QChar(':'));
+	return s.toUpper();
 }
 

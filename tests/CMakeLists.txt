@@ -25,3 +25,19 @@ if(GTAGS)
 	add_custom_target(gtags COMMAND gtags WORKING_DIRECTORY ${CMAKE_SOURCE_DIR} COMMENT "Generating intellisense data...")
 	add_dependencies(${PROJECT_NAME} gtags)
 endif(GTAGS)
+
+# Windows specific build steps
+if(WIN32)
+	# Run winddeployqt if it can be found
+	find_program(WINDEPLOYQT_EXECUTABLE NAMES windeployqt HINTS ${QTDIR} ENV QTDIR PATH_SUFFIXES bin)
+	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+	COMMAND ${WINDEPLOYQT_EXECUTABLE} $<TARGET_FILE:${PROJECT_NAME}>)
+	# Gather up all the dependencies in the bin dir
+	# Lack of a trailing slash means install this directory, trailing slash means install everything in this directory.
+	install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Release/
+			RUNTIME DESTINATION bin
+			FILES_MATCHING
+			PATTERN "_CPack*" EXCLUDE
+			PATTERN "*.dll"
+			)
+endif()

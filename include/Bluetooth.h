@@ -41,12 +41,11 @@
 #ifndef bluetooth_h__
 #define bluetooth_h__
 
-
 //-------------------------
 //	INCLUDES
 //-------------------------
 
-#include <vector>
+#include <unordered_map>
 
 #include <bluetoothRadio.h>
 #include <bluetoothDevice.h>
@@ -54,6 +53,13 @@
 //-------------------------
 //	FORWARD DECLARATIONS
 //-------------------------
+
+
+//------------------------------
+//	TYPE DEFINITIONS
+//------------------------------
+
+
 
 //--------------------------------------------------------------------------------------------------
 //	CLASS BLUETOOTH
@@ -64,19 +70,23 @@ public:
 
 	Bluetooth();
 
-	BluetoothRadio&						localRadio(unsigned int index = 0);
-	BluetoothRadio&						localRadio(const std::wstring_view& name, bool refreshList = false);
-	const BluetoothRadio&				localRadio(unsigned int index = 0) const;
-	const BluetoothRadio&				localRadio(const std::wstring_view& name, bool refreshList = false) const;
-	std::vector<BluetoothRadio>&		localRadios(bool refreshList = false);
-	const std::vector<BluetoothRadio>&	localRadios(bool refreshList = false) const;
+	BluetoothRadio&										localRadio(bool refreshList = false);
+	BluetoothRadio&										localRadio(const QString& name, bool refreshList = false);
 
-	BluetoothDevice&					remoteDevice(unsigned int index = 0);
-	BluetoothDevice&					remoteDevice(const std::wstring_view& name, bool refreshList = false);
-	const BluetoothDevice&				remoteDevice(unsigned int index = 0) const;
-	const BluetoothDevice&				remoteDevice(const std::wstring_view& name, bool refreshList = false) const;
-	std::vector<BluetoothDevice>&		remoteDevices(bool refreshList = false);
-	const std::vector<BluetoothDevice>& remoteDevices(bool refreshList = false) const;
+	const BluetoothRadio&								localRadio(bool refreshList = false) const;
+	const BluetoothRadio&								localRadio(const QString& name, bool refreshList = false) const;
+	
+	std::unordered_map<QString, BluetoothRadio>&		localRadios(bool refreshList = false);
+	const  std::unordered_map<QString, BluetoothRadio>&	localRadios(bool refreshList = false) const;
+
+	BluetoothDevice&									remoteDevice(bool refreshList = false);
+	BluetoothDevice&									remoteDevice(const QString& name, bool refreshList = false);
+	
+	const BluetoothDevice&								remoteDevice(bool refreshList = false) const;
+	const BluetoothDevice&								remoteDevice(const QString& name, bool refreshList = false) const;
+	
+	std::unordered_map<QString, BluetoothDevice>&		remoteDevices(bool refreshList = false);
+	const std::unordered_map<QString, BluetoothDevice>&	remoteDevices(bool refreshList = false) const;
 
 protected:
 
@@ -86,8 +96,8 @@ protected:
 
 private:
 
-	mutable std::vector<BluetoothRadio> m_localRadios;
-	mutable std::vector<BluetoothDevice> m_remoteDevices;
+	mutable std::unordered_map<QString, BluetoothRadio> m_localRadios;
+	mutable std::unordered_map<QString, BluetoothDevice> m_remoteDevices;
 	BluetoothRadio m_invalidRadio;
 	BluetoothDevice m_invalidDevice;
 };

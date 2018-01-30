@@ -72,8 +72,8 @@ public:
 	BluetoothDevice& operator=(BluetoothDevice&& other);
 
 	BluetoothAddress address() const;
-	std::wstring addressString() const;
-	std::wstring name() const;
+	QString addressString() const;
+	QString name() const;
 	unsigned long classOfDevice() const;
 
 	bool isValid() const;
@@ -84,7 +84,7 @@ public:
 	std::string_view lastUsed();
 
 	bool operator<(const BluetoothDevice& other);
-	bool operator==(const std::wstring_view& name) const;
+	bool operator==(const QString& name) const;
 	bool operator==(BluetoothAddress address) const;
 	operator BluetoothAddress() const;
 
