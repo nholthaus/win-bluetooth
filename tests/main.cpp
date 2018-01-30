@@ -122,15 +122,15 @@ TEST_F(BluetoothTest, deviceInfo)
 	for (auto& [name, address] : addresses)
 	{
 		ASSERT_EQ(name, r.remoteDevice(name).name()) << "Did not find remote device: " << name.data();
-		ASSERT_EQ(addresses, r.remoteDevice(name).address());
+		ASSERT_EQ(address, r.remoteDevice(name).address());
 	}
 
 	std::cout << "REMOTE DEVICES:" << std::endl;
-	for (const auto& [name, device] : r.remoteDevices())
+	for (const auto& [name, address] : r.remoteDevices())
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
-TEST_F(BluetoothTest, connect)
+ TEST_F(BluetoothTest, connect)
 {
 	Bluetooth r;
 	ASSERT_TRUE(r.localRadio().connectTo(r.remoteDevice("RELENTLESS")));

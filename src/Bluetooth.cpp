@@ -104,17 +104,6 @@ bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/) const
 	return m_localRadios.size();
 }
 
-
-bool Bluetooth::init()
-{
-	// Ask for Winsock version 2.2.
-	WSADATA WSAData = { 0 };
-	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
-		throw BluetoothException("Unable to initialize Winsock version 2.2");
-
-	return true;
-}
-
 bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 {
 	if (refreshList || m_remoteDevices.empty())
@@ -133,7 +122,7 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 		BLUETOOTH_DEVICE_INFO btdi;
 		btdi.dwSize = sizeof(btdi);
 
-		for (const auto& [name, radio] : localRadios())
+		for (const auto& [radioName, radio] : localRadios())
 		{
 			btdsp.hRadio = (HANDLE)radio.handle();
 	
@@ -141,7 +130,9 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 			BluetoothFindDeviceHandle device = BluetoothFindFirstDevice(&btdsp, &btdi);
 			if (device) 
 			{
-				m_remoteDevices.emplace(name, btdsp.hRadio, &btdi);
+				m_remoteDevices.emplace(std::piecewise_construct,
+					std::forward_as_tuple(QString::fromWCharArray(btdi.szName)), 
+					std::forward_as_tuple(btdsp.hRadio, &btdi));
 			}
 			else
 			{
@@ -155,8 +146,9 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 			// get the rest of the local radios
 			while (BluetoothFindNextDevice(device, &btdi))
 			{
-				BluetoothDevice d(btdsp.hRadio, &btdi);
-				m_remoteDevices[d.name()] = std::move(d);
+				m_remoteDevices.emplace(std::piecewise_construct,
+					std::forward_as_tuple(QString::fromWCharArray(btdi.szName)),
+					std::forward_as_tuple(btdsp.hRadio, &btdi));
 			}
 	
 			if (GetLastError() != ERROR_NO_MORE_ITEMS)
@@ -165,6 +157,16 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 	}
 
 	return m_remoteDevices.size();
+}
+
+bool Bluetooth::init()
+{
+	// Ask for Winsock version 2.2.
+	WSADATA WSAData = { 0 };
+	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
+		throw BluetoothException("Unable to initialize Winsock version 2.2");
+
+	return true;
 }
 
 Bluetooth::Bluetooth()
@@ -216,16 +218,6 @@ const BluetoothDevice& Bluetooth::remoteDevice(const QString& name, bool refresh
 {
 	enumerateRemoteDevices(refreshList);
 	return m_remoteDevices.count(name) ? m_remoteDevices[name] : m_invalidDevice;
-}
-
-BluetoothDevice& Bluetooth::remoteDevice(bool refreshList /*= false*/)
-{
-	return remoteDevice(QHostInfo::localHostName().toUpper(), refreshList);
-}
-
-const BluetoothDevice& Bluetooth::remoteDevice(bool refreshList /*= false*/) const
-{
-	return remoteDevice(QHostInfo::localHostName().toUpper(), refreshList);
 }
 
 std::unordered_map<QString, BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/)

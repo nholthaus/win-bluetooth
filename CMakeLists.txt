@@ -25,6 +25,7 @@ include/bluetoothException.h
 include/bluetoothRadio.h
 include/bluetoothUtils.h
 include/bluetoothUuids.h
+include/QStringHash.h
 )
 
 # .cpp files

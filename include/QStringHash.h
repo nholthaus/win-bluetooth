@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-//	
+//	QSTRING HASH
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -23,83 +23,49 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-// Copyright (c) 2018 Nic Holthaus
+// Copyright (c) 2017 Nic Holthaus
 // 
 //--------------------------------------------------------------------------------------------------
 //
 // ATTRIBUTION:
-//
+// http://www.cse.yorku.ca/~oz/hash.html
+// http://en.cppreference.com/w/cpp/utility/hash
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	
-/// @brief	
+/// @file	QStringHash.h
+/// @brief	hash function for std::unordered_set and std::unordered_map
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef bluetooth_h__
-#define bluetooth_h__
+#ifndef QStringHash_h__
+#define QStringHash_h__
 
 //-------------------------
 //	INCLUDES
 //-------------------------
 
 #include <QString>
-#include <QStringHash.h>
 #include <unordered_map>
 
-#include <bluetoothRadio.h>
-#include <bluetoothDevice.h>
-
-//-------------------------
-//	FORWARD DECLARATIONS
-//-------------------------
-
-
 //------------------------------
-//	TYPE DEFINITIONS
+//	HASH FUNCTION
 //------------------------------
-
-
-
-//--------------------------------------------------------------------------------------------------
-//	CLASS BLUETOOTH
-//--------------------------------------------------------------------------------------------------
-class Bluetooth
+namespace std
 {
-public:
+	template<> struct hash<QString>
+	{
+		std::size_t operator()(const QString& s) const noexcept
+		{
+			const QChar* str = s.data();
+			std::size_t hash = 5381;
+			
+			for (int i = 0; i < s.size(); ++i)
+				hash = ((hash << 5) + hash) + ((str->row() << 8) | (str++)->cell());
 
-	Bluetooth();
-
-	BluetoothRadio&										localRadio(bool refreshList = false);
-	BluetoothRadio&										localRadio(const QString& name, bool refreshList = false);
-
-	const BluetoothRadio&								localRadio(bool refreshList = false) const;
-	const BluetoothRadio&								localRadio(const QString& name, bool refreshList = false) const;
-	
-	std::unordered_map<QString, BluetoothRadio>&		localRadios(bool refreshList = false);
-	const  std::unordered_map<QString, BluetoothRadio>&	localRadios(bool refreshList = false) const;
-
-	BluetoothDevice&									remoteDevice(const QString& name, bool refreshList = false);
-	const BluetoothDevice&								remoteDevice(const QString& name, bool refreshList = false) const;
-	
-	std::unordered_map<QString, BluetoothDevice>&		remoteDevices(bool refreshList = false);
-	const std::unordered_map<QString, BluetoothDevice>&	remoteDevices(bool refreshList = false) const;
-
-protected:
-
-	virtual bool init();
-	virtual bool enumerateLocalRadios(bool refreshList = false) const;
-	virtual bool enumerateRemoteDevices(bool refreshList = false) const;
-
-private:
-
-	mutable std::unordered_map<QString, BluetoothRadio> m_localRadios;
-	mutable std::unordered_map<QString, BluetoothDevice> m_remoteDevices;
-	BluetoothRadio m_invalidRadio;
-	BluetoothDevice m_invalidDevice;
-};
-
-
-#endif // bluetooth_h__
+			return hash;
+		}
+	};
+}
+#endif // QStringHash_h__
