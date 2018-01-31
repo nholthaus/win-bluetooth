@@ -170,6 +170,7 @@ bool Bluetooth::init()
 }
 
 Bluetooth::Bluetooth()
+	: m_hostname(QHostInfo::localHostName().toUpper())
 {
 	init();
 }
@@ -188,12 +189,12 @@ const BluetoothRadio& Bluetooth::localRadio(const QString& name, bool refreshLis
 
 BluetoothRadio& Bluetooth::localRadio(bool refreshList /*= false*/)
 {
-	return localRadio(QHostInfo::localHostName().toUpper(), refreshList);
+	return localRadio(m_hostname, refreshList);
 }
 
 const BluetoothRadio& Bluetooth::localRadio(bool refreshList /*= false*/) const
 {
-	return localRadio(QHostInfo::localHostName().toUpper(), refreshList);
+	return localRadio(m_hostname, refreshList);
 }
 
 std::unordered_map<QString, BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/)

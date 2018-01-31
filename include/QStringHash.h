@@ -52,6 +52,7 @@
 //------------------------------
 //	HASH FUNCTION
 //------------------------------
+
 namespace std
 {
 	template<> struct hash<QString>
@@ -68,4 +69,5 @@ namespace std
 		}
 	};
 }
+
 #endif // QStringHash_h__

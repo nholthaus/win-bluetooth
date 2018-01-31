@@ -99,6 +99,8 @@ private:
 	mutable std::unordered_map<QString, BluetoothDevice> m_remoteDevices;
 	BluetoothRadio m_invalidRadio;
 	BluetoothDevice m_invalidDevice;
+
+	QString m_hostname;
 };
 
 
