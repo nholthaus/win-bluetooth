@@ -20,6 +20,15 @@
 
 #define ERR HRESULT_FROM_WIN32(GetLastError())
 
+//------------------------------
+//	STATIC MEMBERS
+//------------------------------
+
+std::unordered_map<QString, BluetoothRadio> Bluetooth::m_localRadios;
+std::unordered_map<QString, BluetoothDevice> Bluetooth::m_remoteDevices;
+BluetoothDevice Bluetooth::m_invalidDevice;
+BluetoothRadio Bluetooth::m_invalidRadio;
+
 //--------------------------------------------------------------------------------------------------
 //	RAII WRAPPERS
 //--------------------------------------------------------------------------------------------------
@@ -63,7 +72,7 @@ private:
 //--------------------------------------------------------------------------------------------------
 //	METHODS
 //--------------------------------------------------------------------------------------------------
-bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/) const
+bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/)
 {
 	if(refreshList || m_localRadios.empty())
 	{
@@ -104,7 +113,7 @@ bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/) const
 	return m_localRadios.size();
 }
 
-bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
+bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/)
 {
 	if (refreshList || m_remoteDevices.empty())
 	{
@@ -159,28 +168,7 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/) const
 	return m_remoteDevices.size();
 }
 
-bool Bluetooth::init()
-{
-	// Ask for Winsock version 2.2.
-	WSADATA WSAData = { 0 };
-	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
-		throw BluetoothException("Unable to initialize Winsock version 2.2");
-
-	return true;
-}
-
-Bluetooth::Bluetooth()
-{
-	init();
-}
-
 BluetoothRadio& Bluetooth::localRadio(const QString& name, bool refreshList /*= false*/)
-{
-	enumerateLocalRadios(refreshList);
-	return m_localRadios.count(name) ? m_localRadios[name] : m_invalidRadio;
-}
-
-const BluetoothRadio& Bluetooth::localRadio(const QString& name, bool refreshList /*= false*/) const
 {
 	enumerateLocalRadios(refreshList);
 	return m_localRadios.count(name) ? m_localRadios[name] : m_invalidRadio;
@@ -191,18 +179,7 @@ BluetoothRadio& Bluetooth::localRadio(bool refreshList /*= false*/)
 	return localRadio(QHostInfo::localHostName().toUpper(), refreshList);
 }
 
-const BluetoothRadio& Bluetooth::localRadio(bool refreshList /*= false*/) const
-{
-	return localRadio(QHostInfo::localHostName().toUpper(), refreshList);
-}
-
 std::unordered_map<QString, BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/)
-{
-	enumerateLocalRadios(refreshList);
-	return m_localRadios;
-}
-
-const std::unordered_map<QString, BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/) const
 {
 	enumerateLocalRadios(refreshList);
 	return m_localRadios;
@@ -214,19 +191,7 @@ BluetoothDevice& Bluetooth::remoteDevice(const QString& name, bool refreshList /
 	return m_remoteDevices.count(name) ? m_remoteDevices[name] : m_invalidDevice;
 }
 
-const BluetoothDevice& Bluetooth::remoteDevice(const QString& name, bool refreshList /*= false*/) const
-{
-	enumerateRemoteDevices(refreshList);
-	return m_remoteDevices.count(name) ? m_remoteDevices[name] : m_invalidDevice;
-}
-
 std::unordered_map<QString, BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/)
-{
-	enumerateRemoteDevices(refreshList);
-	return m_remoteDevices;
-}
-
-const std::unordered_map<QString, BluetoothDevice>& Bluetooth::remoteDevices(bool refreshList /*= false*/) const
 {
 	enumerateRemoteDevices(refreshList);
 	return m_remoteDevices;

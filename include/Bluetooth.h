@@ -70,36 +70,24 @@ class Bluetooth
 {
 public:
 
-	Bluetooth();
-
-	BluetoothRadio&										localRadio(bool refreshList = false);
-	BluetoothRadio&										localRadio(const QString& name, bool refreshList = false);
-
-	const BluetoothRadio&								localRadio(bool refreshList = false) const;
-	const BluetoothRadio&								localRadio(const QString& name, bool refreshList = false) const;
+	static BluetoothRadio&	localRadio(bool refreshList = false);
+	static BluetoothRadio&	localRadio(const QString& name, bool refreshList = false);
+	static BluetoothDevice&	remoteDevice(const QString& name, bool refreshList = false);
 	
-	std::unordered_map<QString, BluetoothRadio>&		localRadios(bool refreshList = false);
-	const  std::unordered_map<QString, BluetoothRadio>&	localRadios(bool refreshList = false) const;
-
-	BluetoothDevice&									remoteDevice(const QString& name, bool refreshList = false);
-	const BluetoothDevice&								remoteDevice(const QString& name, bool refreshList = false) const;
-	
-	std::unordered_map<QString, BluetoothDevice>&		remoteDevices(bool refreshList = false);
-	const std::unordered_map<QString, BluetoothDevice>&	remoteDevices(bool refreshList = false) const;
-
-protected:
-
-	virtual bool init();
-	virtual bool enumerateLocalRadios(bool refreshList = false) const;
-	virtual bool enumerateRemoteDevices(bool refreshList = false) const;
+	static std::unordered_map<QString, BluetoothRadio>&		localRadios(bool refreshList = false);
+	static std::unordered_map<QString, BluetoothDevice>&	remoteDevices(bool refreshList = false);
 
 private:
 
-	mutable std::unordered_map<QString, BluetoothRadio> m_localRadios;
-	mutable std::unordered_map<QString, BluetoothDevice> m_remoteDevices;
-	BluetoothRadio m_invalidRadio;
-	BluetoothDevice m_invalidDevice;
-};
+	static bool enumerateLocalRadios(bool refreshList = false);
+	static bool enumerateRemoteDevices(bool refreshList = false);
 
+private:
+
+	static std::unordered_map<QString, BluetoothRadio> m_localRadios;
+	static std::unordered_map<QString, BluetoothDevice> m_remoteDevices;
+	static BluetoothRadio m_invalidRadio;
+	static BluetoothDevice m_invalidDevice;
+};
 
 #endif // bluetooth_h__

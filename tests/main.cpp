@@ -47,6 +47,12 @@ TEST_F(BluetoothTest, BluetoothAddress)
 	ASSERT_STREQ(STR(QString(addr)), STR(QString("00:15:83:ED:9E:4C")));
 }
 
+TEST_F(BluetoothTest, BluetoothUuid)
+{
+	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()), "{00030000-0000-1000-8000-00805F9B34FB}");
+	
+}
+
 TEST_F(BluetoothTest, exceptionFromHresult)
 {
 	BluetoothException ex(ERROR_NO_MORE_ITEMS);
@@ -62,37 +68,34 @@ TEST_F(BluetoothTest, exceptionFromString)
 
 TEST_F(BluetoothTest, enumerateLocalRadios)
 {
-	Bluetooth r;
-	ASSERT_FALSE(r.localRadios().empty());
+	ASSERT_FALSE(Bluetooth::localRadios().empty());
 }
 
 TEST_F(BluetoothTest, discoverable)
 {
-	Bluetooth r;
-	ASSERT_FALSE(r.localRadios().empty());
+	ASSERT_FALSE(Bluetooth::localRadios().empty());
 
-	r.localRadio().setDiscoverable(true);
-	ASSERT_TRUE(r.localRadio().discoverable());
+	Bluetooth::localRadio().setDiscoverable(true);
+	ASSERT_TRUE(Bluetooth::localRadio().discoverable());
 
 #ifndef _WIN32
 	// windows doesn't let you turn off discovery
-	r.localRadio().setDiscoverable(false);
-	ASSERT_FALSE(r.localRadio().discoverable());
+	Bluetooth::localRadio().setDiscoverable(false);
+	ASSERT_FALSE(Bluetooth::localRadio().discoverable());
 #endif
 }
 
 TEST_F(BluetoothTest, connectable)
 {
-	Bluetooth r;
-	ASSERT_FALSE(r.localRadios().empty());
+	ASSERT_FALSE(Bluetooth::localRadios().empty());
 
-	r.localRadio().setConnectable(true);
-	ASSERT_TRUE(r.localRadio().connectable());
+	Bluetooth::localRadio().setConnectable(true);
+	ASSERT_TRUE(Bluetooth::localRadio().connectable());
 
 #ifndef _WIN32
 	// windows doesn't let you turn off connectability
-	r.localRadio().setConnectable(false);
-	ASSERT_FALSE(r.localRadio().connectable());
+	Bluetooth::localRadio().setConnectable(false);
+	ASSERT_FALSE(Bluetooth::localRadio().connectable());
 #endif
 }
 
@@ -104,12 +107,11 @@ TEST_F(BluetoothTest, radioInfo)
 	addresses["DAUNTLESS"] = 92407701068;
 	addresses["NIC-PC"] = 71340216032535;
 
-	Bluetooth r;
-	ASSERT_TRUE(addresses.count(r.localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
-	ASSERT_EQ(addresses[r.localRadio().name()], r.localRadio().address());
+	ASSERT_TRUE(addresses.count(Bluetooth::localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
+	ASSERT_EQ(addresses[Bluetooth::localRadio().name()], Bluetooth::localRadio().address());
 
 	std::cout << "LOCAL RADIOS:" << std::endl;
-	for (const auto& [name, radio] : r.localRadios())
+	for (const auto& [name, radio] : Bluetooth::localRadios())
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
@@ -120,22 +122,20 @@ TEST_F(BluetoothTest, deviceInfo)
 	// all the test computers have to be added to this list :(
 	addresses["SAMSUNG-SM-G935V"] = 163237606836978;
 
-	Bluetooth r;
 	for (auto& [name, address] : addresses)
 	{
-		ASSERT_STREQ(STR(name), STR(r.remoteDevice(name).name())) << "Did not find remote device: " << name.data();
-		ASSERT_EQ(address, r.remoteDevice(name).address());
+		ASSERT_STREQ(STR(name), STR(Bluetooth::remoteDevice(name).name())) << "Did not find remote device: " << name.data();
+		ASSERT_EQ(address, Bluetooth::remoteDevice(name).address());
 	}
 
 	std::cout << "REMOTE DEVICES:" << std::endl;
-	for (const auto& [name, address] : r.remoteDevices())
+	for (const auto& [name, address] : Bluetooth::remoteDevices())
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
  TEST_F(BluetoothTest, connect)
 {
-	Bluetooth r;
-	ASSERT_TRUE(r.localRadio().connectTo(r.remoteDevice("RELENTLESS")));
+	ASSERT_TRUE(Bluetooth::localRadio().connectTo(Bluetooth::remoteDevice("RELENTLESS")));
 }
 
 int main(int argc, char* argv[])

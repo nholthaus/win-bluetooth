@@ -47,12 +47,16 @@
 
 #include <QIODevice>
 #include <QScopedPointer>
+#include <QAbstractSocket>
+
+#include <bluetoothUuids.h>
 
 //-------------------------
 //	FORWARD DECLARATIONS
 //-------------------------
 
 class BluetoothSocketPrivate;
+class BluetoothAddress;
 
 //--------------------------------------------------------------------------------------------------
 //	BluetoothSocket
@@ -64,18 +68,61 @@ class BluetoothSocket : public QIODevice
 
 public:
 
-	BluetoothSocket();
+	enum class SocketState
+	{
+		UnconnectedState		= QAbstractSocket::UnconnectedState,
+		ServiceLookupState		= QAbstractSocket::HostLookupState,
+		ConnectingState			= QAbstractSocket::ConnectingState,
+		ConnectedState			= QAbstractSocket::ConnectedState,
+		BoundState				= QAbstractSocket::BoundState,
+		ClosingState			= QAbstractSocket::ClosingState,
+		ListeningState			= QAbstractSocket::ListeningState,
+	};
+	Q_ENUM(SocketState);
+
+	enum class SocketError
+	{
+		UnknownSocketError			= QAbstractSocket::UnknownSocketError,
+		NoSocketError				= - 2,
+		HostNotFoundError			= QAbstractSocket::HostNotFoundError,
+		ServiceNotFoundError		= QAbstractSocket::SocketAddressNotAvailableError,
+		NetworkError				= QAbstractSocket::NetworkError,
+		UnsupportedProtocolError	= 8,
+		OperationError				= QAbstractSocket::OperationError,
+		RemoteHostClosedError		= QAbstractSocket::RemoteHostClosedError,
+	};
+	Q_ENUM(SocketError);
+
+public:
+
+	BluetoothSocket(QObject* parent = nullptr);
 	virtual ~BluetoothSocket() = default;
+
+	void connectToService(const BluetoothAddress& address, const BluetoothUuid& uuid, OpenMode openMode = ReadWrite);
+	void connectToService(const BluetoothAddress& address, quint16 port, OpenMode openMode = ReadWrite);
+	void disconnectFromService();
+	SocketError error() const;
+	QString errorString() const;
+	BluetoothAddress localAddress() const;
+	QString localName() const;
+	quint16 localPort() const;
+	BluetoothAddress peerAddress() const;
+	QString peerName() const;
+	quint16 peerPort() const;
+	Protocol socketType() const;
+	SocketState state() const;
 	
-	virtual bool isSequential() const override;
-	virtual qint64 bytesAvailable() const override;
-	virtual bool waitForReadyRead(int msecs) override;
-	virtual bool waitForBytesWritten(int msecs) override;
 	virtual void close() override;
+	virtual bool isSequential() const override;
+
+	virtual qint64 bytesAvailable() const override;
 
 signals:
 
-
+	void connected();
+	void disconnected();
+	void error(SocketError error);
+	void stateChanged(SocketState state);
 
 protected:
 
@@ -84,6 +131,7 @@ protected:
 
 private:
 
+	Q_DECLARE_PRIVATE(BluetoothSocket)
 	QScopedPointer<BluetoothSocketPrivate>	d_ptr;
 
 };

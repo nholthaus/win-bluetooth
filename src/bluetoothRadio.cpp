@@ -71,7 +71,7 @@ BluetoothRadio::~BluetoothRadio()
 
 bool BluetoothRadio::connectTo(BluetoothAddress address)
 {
-	throw();
+	throw BluetoothException("unimplemented");
 }
 
 unsigned short BluetoothRadio::manufacturer() const
