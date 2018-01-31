@@ -50,7 +50,8 @@ public:
 
 	BluetoothAddress() = default;
 	BluetoothAddress(uint64_t address);
-	BluetoothAddress(const QString& name);
+	BluetoothAddress(const QString& nameOrMac);
+	BluetoothAddress(const char* nameOrMac);
 
 	void clear();
 	bool isNull() const;
@@ -63,6 +64,10 @@ public:
 	bool operator==(const BluetoothAddress& other) const;
 	bool operator!=(const BluetoothAddress& other) const;
 	bool operator<(const BluetoothAddress& other) const;
+
+private:
+
+	void addressFromString(const QString& nameOrMac);
 
 private:
 

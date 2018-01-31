@@ -56,6 +56,7 @@
 //	FORWARD DECLARATIONS
 //-------------------------
 
+class BluetoothAddress;
 
 //------------------------------
 //	TYPE DEFINITIONS
@@ -77,6 +78,8 @@ public:
 	static std::unordered_map<QString, BluetoothRadio>&		localRadios(bool refreshList = false);
 	static std::unordered_map<QString, BluetoothDevice>&	remoteDevices(bool refreshList = false);
 
+	static QString name(const BluetoothAddress& address);
+
 private:
 
 	static bool enumerateLocalRadios(bool refreshList = false);
@@ -88,6 +91,7 @@ private:
 	static std::unordered_map<QString, BluetoothDevice> m_remoteDevices;
 	static BluetoothRadio m_invalidRadio;
 	static BluetoothDevice m_invalidDevice;
+	static QString m_hostname;
 };
 
 #endif // bluetooth_h__

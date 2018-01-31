@@ -93,11 +93,16 @@ public:
 	};
 	Q_ENUM(SocketError);
 
+private:
+
+	Q_DISABLE_COPY(BluetoothSocket)
+
 public:
 
 	BluetoothSocket(QObject* parent = nullptr);
-	virtual ~BluetoothSocket() = default;
+	virtual ~BluetoothSocket();
 
+	void abort();
 	void connectToService(const BluetoothAddress& address, const BluetoothUuid& uuid, OpenMode openMode = ReadWrite);
 	void connectToService(const BluetoothAddress& address, quint16 port, OpenMode openMode = ReadWrite);
 	void disconnectFromService();
@@ -131,8 +136,12 @@ protected:
 
 private:
 
+	void connectToService(const BluetoothAddress& address, OpenMode openMode = ReadWrite);
+
+private:
+
 	Q_DECLARE_PRIVATE(BluetoothSocket)
-	QScopedPointer<BluetoothSocketPrivate>	d_ptr;
+	QScopedPointer<BluetoothSocketPrivate> d_ptr;
 
 };
 

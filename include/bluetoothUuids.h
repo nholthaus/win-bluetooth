@@ -2,8 +2,6 @@
 // 
 ///	@project WIN-BLUETOOTH
 //
-//		!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
-//
 //--------------------------------------------------------------------------------------------------
 //
 // The MIT License (MIT)

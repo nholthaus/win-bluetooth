@@ -28,6 +28,7 @@ std::unordered_map<QString, BluetoothRadio> Bluetooth::m_localRadios;
 std::unordered_map<QString, BluetoothDevice> Bluetooth::m_remoteDevices;
 BluetoothDevice Bluetooth::m_invalidDevice;
 BluetoothRadio Bluetooth::m_invalidRadio;
+QString Bluetooth::m_hostname(QHostInfo::localHostName());
 
 //--------------------------------------------------------------------------------------------------
 //	RAII WRAPPERS
@@ -195,4 +196,23 @@ std::unordered_map<QString, BluetoothDevice>& Bluetooth::remoteDevices(bool refr
 {
 	enumerateRemoteDevices(refreshList);
 	return m_remoteDevices;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	name (public ) [static ]
+//--------------------------------------------------------------------------------------------------
+QString Bluetooth::name(const BluetoothAddress& address)
+{
+	for (const auto& [name, radio] : m_localRadios)
+	{
+		if (radio.address() == address)
+			return name;
+	}
+	for (const auto&[name, device] : m_remoteDevices)
+	{
+		if (device.address() == address)
+			return name;
+	}
+
+	return "INVALID";
 }

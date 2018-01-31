@@ -1,6 +1,8 @@
-#include "bluetoothAddress.h"
+#include <bluetoothAddress.h>
+#include <bluetooth.h>
 
 #include <algorithm>
+#include <QRegularExpression>
 
 BluetoothAddress::BluetoothAddress(uint64_t address)
 	: m_address(address)
@@ -8,11 +10,42 @@ BluetoothAddress::BluetoothAddress(uint64_t address)
 
 }
 
-BluetoothAddress::BluetoothAddress(const QString& name)
+BluetoothAddress::BluetoothAddress(const QString& nameOrMac)
 {
-	QString str = name;
-	str.remove(':');
-	m_address = str.toULongLong(nullptr, 16);
+	addressFromString(nameOrMac);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	BluetoothAddress (public ) []
+//--------------------------------------------------------------------------------------------------
+BluetoothAddress::BluetoothAddress(const char* nameOrMac)
+{
+	addressFromString(nameOrMac);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	addressFromString (public ) []
+//--------------------------------------------------------------------------------------------------
+void BluetoothAddress::addressFromString(const QString& nameOrMac)
+{
+	QRegularExpression macRx(R"(^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$)");
+	if (nameOrMac.contains(macRx))
+	{
+		// it's a MAC address
+		QString str = nameOrMac;
+		str.remove(':');
+		m_address = str.toULongLong(nullptr, 16);
+	}
+	else if (const auto& radio = Bluetooth::localRadio(nameOrMac); radio.isValid())
+	{
+		// it's a host name
+		m_address = radio.address();
+	}
+	else if (const auto& device = Bluetooth::remoteDevice(nameOrMac); device.isValid())
+	{
+		// it's a host name
+		m_address = device.address();
+	}
 }
 
 void BluetoothAddress::clear()

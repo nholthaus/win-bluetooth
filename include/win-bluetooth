@@ -2,6 +2,7 @@
 #include <bluetoothException.h>
 #include <bluetoothAddress.h>
 #include <bluetoothUuids.h>
+#include <BluetoothSocket.h>
 
 #ifdef _WINDOWS_
 #error Don't include windows.h or bluetoothUtils.h in header files!

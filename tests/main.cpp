@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <QHash>
+#include <QHostInfo>
 
 #define STR(s) s.toStdString().c_str()
 
@@ -51,6 +52,11 @@ TEST_F(BluetoothTest, BluetoothUuid)
 {
 	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()), "{00030000-0000-1000-8000-00805F9B34FB}");
 	
+}
+
+TEST_F(BluetoothTest, name)
+{
+	ASSERT_STREQ(STR(Bluetooth::name(Bluetooth::localRadio().address())), STR(QHostInfo::localHostName().toUpper()));
 }
 
 TEST_F(BluetoothTest, exceptionFromHresult)
@@ -135,7 +141,10 @@ TEST_F(BluetoothTest, deviceInfo)
 
  TEST_F(BluetoothTest, connect)
 {
-	ASSERT_TRUE(Bluetooth::localRadio().connectTo(Bluetooth::remoteDevice("RELENTLESS")));
+	 BluetoothSocket sock;
+	 sock.connectToService("NIC-PC", BluetoothUuid(ServiceClass::MSDNBluetoothConnectionExample));
+	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState);
+//	ASSERT_TRUE(Bluetooth::localRadio().connectTo(Bluetooth::remoteDevice("RELENTLESS")));
 }
 
 int main(int argc, char* argv[])
