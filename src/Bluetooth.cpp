@@ -176,7 +176,7 @@ BluetoothRadio& Bluetooth::localRadio(const QString& name, bool refreshList /*= 
 
 BluetoothRadio& Bluetooth::localRadio(bool refreshList /*= false*/)
 {
-	return localRadio(QHostInfo::localHostName().toUpper(), refreshList);
+	return localRadio(m_hostname, refreshList);
 }
 
 std::unordered_map<QString, BluetoothRadio>& Bluetooth::localRadios(bool refreshList /*= false*/)
