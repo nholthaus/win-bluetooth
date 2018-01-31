@@ -23,6 +23,7 @@ include/bluetoothAddress.h
 include/bluetoothDevice.h
 include/bluetoothException.h
 include/bluetoothRadio.h
+include/bluetoothSocket.h
 include/bluetoothUtils.h
 include/bluetoothUuids.h
 include/QStringHash.h
@@ -35,6 +36,7 @@ src/bluetoothAddress.cpp
 src/bluetoothDevice.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
+src/bluetoothSocket.cpp
 src/bluetoothUtils.cpp
 src/bluetoothUuids.cpp
 )

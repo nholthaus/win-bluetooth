@@ -71,25 +71,7 @@ BluetoothRadio::~BluetoothRadio()
 
 bool BluetoothRadio::connectTo(BluetoothAddress address)
 {
-	if (!address)
-		return false;
-
-	SOCKADDR_BTH btAddress;
-	btAddress.addressFamily = AF_BTH;
-	btAddress.serviceClassId = (*m_uuid)[Protocol::MSDNBluetoothConnectionExample];
-	btAddress.port = 0;
-	btAddress.btAddr = address;
-
-	// create a socket
-	SOCKET sock = socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
-	if (sock == INVALID_SOCKET) 
-		throw BluetoothException(HRESULT_FROM_WIN32(WSAGetLastError()));
-
-	// connect it to the remote device
-	if(SOCKET_ERROR == connect(sock, (struct sockaddr *) &btAddress, sizeof(SOCKADDR_BTH)))
-		throw BluetoothException("Bluetooth connection failed");
-
-	return true;
+	throw();
 }
 
 unsigned short BluetoothRadio::manufacturer() const

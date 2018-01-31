@@ -1,8 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@project WIN-BLUETOOTH
-//
-//		!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
+//	
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -34,45 +32,60 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothUuids.h
-/// @brief	Known bluetooth service class Uuids
+/// @file	bluetoothSocket.h
+/// @brief	A Socket/QIODevice wrapper around winsock bluetooth sockets
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef bluetoothUuids_h__
-#define bluetoothUuids_h__
+#ifndef bluetoothSocket_h__
+#define bluetoothSocket_h__
 
-//------------------------------
-//	INCLDUES
-//------------------------------
+//-------------------------
+//	INCLUDES
+//-------------------------
 
-#include <initguid.h>
-#include <unordered_map>
+#include <QIODevice>
+#include <QScopedPointer>
 
-// make sure the protocol enums match this list: https://www.bluetooth.com/specifications/assigned-numbers/service-discovery
-enum class Protocol
-{
-	SDP		= 0x0001,
-	RFCOMM	= 0x0003,
-	L2CAP	= 0x0100,
+//-------------------------
+//	FORWARD DECLARATIONS
+//-------------------------
 
-	MSDNBluetoothConnectionExample = 0xFFFFFFFF,
-};
+class BluetoothSocketPrivate;
 
 //--------------------------------------------------------------------------------------------------
-//	BLUETOOTH UUID
+//	BluetoothSocket
 //--------------------------------------------------------------------------------------------------
-class BluetoothUuid
+
+class BluetoothSocket : public QIODevice
 {
+	Q_OBJECT
+
 public:
 
-	const GUID operator[](Protocol uuid) const {return *(m_uuids.at(uuid));}
+	BluetoothSocket();
+	virtual ~BluetoothSocket() = default;
+	
+	virtual bool isSequential() const override;
+	virtual qint64 bytesAvailable() const override;
+	virtual bool waitForReadyRead(int msecs) override;
+	virtual bool waitForBytesWritten(int msecs) override;
+	virtual void close() override;
+
+signals:
+
+
+
+protected:
+
+	virtual qint64 readData(char *data, qint64 maxlen) override;
+	virtual qint64 writeData(const char *data, qint64 len) override;
 
 private:
 
-	operator int() const;
-	static std::unordered_map<Protocol, const GUID*> m_uuids;
+	QScopedPointer<BluetoothSocketPrivate>	d_ptr;
+
 };
 
-#endif // bluetoothUuids_h__
+#endif // bluetoothSocket_h__

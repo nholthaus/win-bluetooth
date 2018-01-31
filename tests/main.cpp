@@ -6,6 +6,8 @@
 #include <iostream>
 #include <QHash>
 
+#define STR(s) s.toStdString().c_str()
+
 class BluetoothUtils : public ::testing::Test {
 protected:
 
@@ -42,7 +44,7 @@ TEST_F(BluetoothTest, BluetoothAddress)
 {
 	BluetoothAddress addr("00:15:83:ED:9E:4C");
 	ASSERT_EQ(addr, (unsigned long long)92407701068);
-	ASSERT_EQ(QString(addr).toStdString(), QString("00:15:83:ED:9E:4C").toStdString());
+	ASSERT_STREQ(STR(QString(addr)), STR(QString("00:15:83:ED:9E:4C")));
 }
 
 TEST_F(BluetoothTest, exceptionFromHresult)
@@ -121,7 +123,7 @@ TEST_F(BluetoothTest, deviceInfo)
 	Bluetooth r;
 	for (auto& [name, address] : addresses)
 	{
-		ASSERT_EQ(name, r.remoteDevice(name).name()) << "Did not find remote device: " << name.data();
+		ASSERT_STREQ(STR(name), STR(r.remoteDevice(name).name())) << "Did not find remote device: " << name.data();
 		ASSERT_EQ(address, r.remoteDevice(name).address());
 	}
 
