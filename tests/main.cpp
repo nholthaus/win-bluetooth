@@ -1,9 +1,13 @@
 #include <gtest/gtest.h>
 #include <win-bluetooth>
 #include <windows.h>
-#include <unordered_map>
 #include <bluetoothUtils.h>
+
 #include <iostream>
+#include <QHash>
+#include <QHostInfo>
+
+#define STR(s) s.toStdString().c_str()
 
 class BluetoothUtils : public ::testing::Test {
 protected:
@@ -37,6 +41,24 @@ TEST_F(BluetoothUtils, systemTimeToString)
 	ASSERT_STREQ(systemTimeToString(st).c_str(), "05-23-1987 05:36:02.657");
 }
 
+TEST_F(BluetoothTest, BluetoothAddress)
+{
+	BluetoothAddress addr("00:15:83:ED:9E:4C");
+	ASSERT_EQ(addr, (unsigned long long)92407701068);
+	ASSERT_STREQ(STR(QString(addr)), STR(QString("00:15:83:ED:9E:4C")));
+}
+
+TEST_F(BluetoothTest, BluetoothUuid)
+{
+	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()), "{00030000-0000-1000-8000-00805F9B34FB}");
+	
+}
+
+TEST_F(BluetoothTest, name)
+{
+	ASSERT_STREQ(STR(Bluetooth::name(Bluetooth::localRadio().address())), STR(QHostInfo::localHostName().toUpper()));
+}
+
 TEST_F(BluetoothTest, exceptionFromHresult)
 {
 	BluetoothException ex(ERROR_NO_MORE_ITEMS);
@@ -52,80 +74,77 @@ TEST_F(BluetoothTest, exceptionFromString)
 
 TEST_F(BluetoothTest, enumerateLocalRadios)
 {
-	Bluetooth r;
-	ASSERT_FALSE(r.localRadios().empty());
+	ASSERT_FALSE(Bluetooth::localRadios().empty());
 }
 
 TEST_F(BluetoothTest, discoverable)
 {
-	Bluetooth r;
-	ASSERT_FALSE(r.localRadios().empty());
+	ASSERT_FALSE(Bluetooth::localRadios().empty());
 
-	r.localRadio().setDiscoverable(true);
-	ASSERT_TRUE(r.localRadio().discoverable());
+	Bluetooth::localRadio().setDiscoverable(true);
+	ASSERT_TRUE(Bluetooth::localRadio().discoverable());
 
 #ifndef _WIN32
 	// windows doesn't let you turn off discovery
-	r.localRadio().setDiscoverable(false);
-	ASSERT_FALSE(r.localRadio().discoverable());
+	Bluetooth::localRadio().setDiscoverable(false);
+	ASSERT_FALSE(Bluetooth::localRadio().discoverable());
 #endif
 }
 
 TEST_F(BluetoothTest, connectable)
 {
-	Bluetooth r;
-	ASSERT_FALSE(r.localRadios().empty());
+	ASSERT_FALSE(Bluetooth::localRadios().empty());
 
-	r.localRadio().setConnectable(true);
-	ASSERT_TRUE(r.localRadio().connectable());
+	Bluetooth::localRadio().setConnectable(true);
+	ASSERT_TRUE(Bluetooth::localRadio().connectable());
 
 #ifndef _WIN32
 	// windows doesn't let you turn off connectability
-	r.localRadio().setConnectable(false);
-	ASSERT_FALSE(r.localRadio().connectable());
+	Bluetooth::localRadio().setConnectable(false);
+	ASSERT_FALSE(Bluetooth::localRadio().connectable());
 #endif
 }
 
 TEST_F(BluetoothTest, radioInfo)
 {
-	std::unordered_map<std::wstring, unsigned long long> addresses;
+	QHash<QString, BluetoothAddress> addresses;
 
 	// all the test computers have to be added to this list :(
-	addresses[L"DAUNTLESS"] = 92407701068;
-	addresses[L"NIC-PC"] = 71340216032535;
+	addresses["DAUNTLESS"] = 92407701068;
+	addresses["NIC-PC"] = 71340216032535;
 
-	Bluetooth r;
-	ASSERT_TRUE(addresses.count(r.localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
-	ASSERT_EQ(addresses[r.localRadio().name()], r.localRadio().address());
+	ASSERT_TRUE(addresses.count(Bluetooth::localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
+	ASSERT_EQ(addresses[Bluetooth::localRadio().name()], Bluetooth::localRadio().address());
 
 	std::cout << "LOCAL RADIOS:" << std::endl;
-	for (const auto& radio : r.localRadios())
-		std::wcout << "    " << radio.name() << std::endl;
+	for (const auto& [name, radio] : Bluetooth::localRadios())
+		std::cout << "    " << name.toStdString() << std::endl;
 }
 
 TEST_F(BluetoothTest, deviceInfo)
 {
-	std::unordered_map<std::wstring, unsigned long long> addresses;
+	std::unordered_map<QString, BluetoothAddress> addresses;
 
 	// all the test computers have to be added to this list :(
-	addresses[L"SAMSUNG-SM-G935V"] = 163237606836978;
+	addresses["SAMSUNG-SM-G935V"] = 163237606836978;
 
-	Bluetooth r;
-	for (auto&[name, address] : addresses)
+	for (auto& [name, address] : addresses)
 	{
-		ASSERT_EQ(name, r.remoteDevice(name).name()) << "Did not find remote device: " << name;
-		ASSERT_EQ(address, r.remoteDevice(name).address());
+		ASSERT_STREQ(STR(name), STR(Bluetooth::remoteDevice(name).name())) << "Did not find remote device: " << name.data();
+		ASSERT_EQ(address, Bluetooth::remoteDevice(name).address());
 	}
 
 	std::cout << "REMOTE DEVICES:" << std::endl;
-	for (const auto& device : r.remoteDevices())
-		std::wcout << "    " << device.name() << std::endl;
+	for (const auto& [name, address] : Bluetooth::remoteDevices())
+		std::cout << "    " << name.toStdString() << std::endl;
 }
 
-TEST_F(BluetoothTest, connect)
+ TEST_F(BluetoothTest, connect)
 {
-	Bluetooth r;
-	ASSERT_TRUE(r.localRadio().connectTo(r.remoteDevice(L"RELENTLESS")));
+	 BluetoothSocket sock;
+	 sock.connectToService("NIC-PC", BluetoothUuid(ServiceClass::MSDNBluetoothConnectionExample));
+	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState);
+//	ASSERT_TRUE(Bluetooth::localRadio().connectTo(Bluetooth::remoteDevice("RELENTLESS")));
 }
 
 int main(int argc, char* argv[])

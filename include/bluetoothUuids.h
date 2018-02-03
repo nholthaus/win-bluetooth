@@ -2,8 +2,6 @@
 // 
 ///	@project WIN-BLUETOOTH
 //
-//		!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
-//
 //--------------------------------------------------------------------------------------------------
 //
 // The MIT License (MIT)
@@ -47,15 +45,29 @@
 //	INCLDUES
 //------------------------------
 
-#include <initguid.h>
+#include <QUuid>
+#include <QObject>
+
 #include <unordered_map>
 
+//------------------------------
+//	ENUMS
+//------------------------------
+
+// make sure the protocol enums match this list: 
+// https://www.bluetooth.com/specifications/assigned-numbers/service-discovery
 enum class Protocol
 {
-	RFCOMM,
-	SPP,
-	MSDNBluetoothConnectionExample,
+	SDP = 0x0001,
+	RFCOMM = 0x0003,
+	L2CAP = 0x0100,
 };
+
+enum class ServiceClass
+{
+	MSDNBluetoothConnectionExample = 0xFFFF,
+};
+
 
 //--------------------------------------------------------------------------------------------------
 //	BLUETOOTH UUID
@@ -63,13 +75,22 @@ enum class Protocol
 class BluetoothUuid
 {
 public:
+	
+	BluetoothUuid();
+	BluetoothUuid(Protocol protocol);
+	BluetoothUuid(ServiceClass serviceClass);
 
-	const GUID operator[](Protocol uuid) const {return *(m_uuids.at(uuid));}
+	QString toString() const;
+
+	operator QUuid() const;
+	operator GUID() const;
 
 private:
 
-	operator int() const;
-	static std::unordered_map<Protocol, const GUID*> m_uuids;
+	static std::unordered_map<Protocol, QUuid>		m_protocolUuids;
+	static std::unordered_map<ServiceClass, QUuid>	m_serviceClassUuids;
+	
+	QUuid m_uuid;
 };
 
 #endif // bluetoothUuids_h__

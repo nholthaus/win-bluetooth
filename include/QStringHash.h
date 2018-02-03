@@ -1,8 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@project WIN-BLUETOOTH
-//
-//			!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
+//	QSTRING HASH
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -25,25 +23,51 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-// Copyright (c) 2018 Nic Holthaus
+// Copyright (c) 2017 Nic Holthaus
 // 
 //--------------------------------------------------------------------------------------------------
 //
 // ATTRIBUTION:
-//
+// http://www.cse.yorku.ca/~oz/hash.html
+// http://en.cppreference.com/w/cpp/utility/hash
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothUtils.h
-/// @brief	Description of a single bluetooth radio
+/// @file	QStringHash.h
+/// @brief	hash function for std::unordered_set and std::unordered_map
 //
 //--------------------------------------------------------------------------------------------------
 
-//------------------------------
+#pragma once
+#ifndef QStringHash_h__
+#define QStringHash_h__
+
+//-------------------------
 //	INCLUDES
+//-------------------------
+
+#include <QString>
+#include <unordered_map>
+
+//------------------------------
+//	HASH FUNCTION
 //------------------------------
 
-#include <windows.h>
-#include <QString>
+namespace std
+{
+	template<> struct hash<QString>
+	{
+		std::size_t operator()(const QString& s) const noexcept
+		{
+			const QChar* str = s.data();
+			std::size_t hash = 5381;
+			
+			for (int i = 0; i < s.size(); ++i)
+				hash = ((hash << 5) + hash) + ((str->row() << 8) | (str++)->cell());
 
-std::string systemTimeToString(const SYSTEMTIME& time);
+			return hash;
+		}
+	};
+}
+
+#endif // QStringHash_h__

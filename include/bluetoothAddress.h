@@ -42,7 +42,7 @@
 #define bluetoothAddress_h__
 
 #include <cstdint>
-#include <string>
+#include <QString>
 
 class BluetoothAddress
 {
@@ -50,18 +50,24 @@ public:
 
 	BluetoothAddress() = default;
 	BluetoothAddress(uint64_t address);
-	BluetoothAddress(const std::wstring& name);
+	BluetoothAddress(const QString& nameOrMac);
+	BluetoothAddress(const char* nameOrMac);
 
 	void clear();
 	bool isNull() const;
 
-	operator std::wstring() const;
+	operator QString() const;
 	operator uint64_t() const;
 	
 	bool operator==(uint64_t other) const;
+	bool operator==(const QString& other) const;
 	bool operator==(const BluetoothAddress& other) const;
 	bool operator!=(const BluetoothAddress& other) const;
 	bool operator<(const BluetoothAddress& other) const;
+
+private:
+
+	void addressFromString(const QString& nameOrMac);
 
 private:
 

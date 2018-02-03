@@ -46,7 +46,7 @@
 //------------------------------
 
 #include <memory>
-#include <string>
+#include <QString>
 
 //------------------------------
 //	FORWARD DECLARATIONS
@@ -69,12 +69,16 @@ public:
 
 	BluetoothRadio(void* radioHandle = nullptr);
 	virtual ~BluetoothRadio();
+	BluetoothRadio(const BluetoothRadio& other) = delete;
+	BluetoothRadio(BluetoothRadio&& other);
+	BluetoothRadio& operator=(const BluetoothRadio& other) = delete;
+	BluetoothRadio& operator=(BluetoothRadio&& other);
 
 	void* handle();
 	const void* handle() const;
 	bool isValid() const;
 	unsigned long long address() const;
-	std::wstring name() const;
+	QString name() const;
 	unsigned long classOfDevice() const;
 	unsigned short manufacturer() const;
 
@@ -86,7 +90,7 @@ public:
 
 	bool connectTo(BluetoothAddress address);
 
-	bool operator==(const std::wstring_view name) const;
+	bool operator==(const QString& name) const;
 	bool operator==(const unsigned long long address) const;
 
 private:
@@ -95,7 +99,7 @@ private:
 	void*									m_radioInfo;
 	bool									m_isValid;
 	unsigned long long						m_address;
-	std::wstring							m_name;
+	QString									m_name;
 	unsigned long							m_class;
 	unsigned short							m_lmpSubversion;
 	unsigned short							m_manufacturer;
