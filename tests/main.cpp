@@ -2,6 +2,7 @@
 #include <win-bluetooth>
 #include <windows.h>
 #include <bluetoothUtils.h>
+#include <obexHeader.h>
 
 #include <iostream>
 #include <QHash>
@@ -27,6 +28,15 @@ protected:
 	void TearDown() override {};
 };
 
+class ObexHeader : public ::testing::Test {
+protected:
+
+	ObexHeader() = default;
+	virtual ~ObexHeader() = default;
+	void SetUp() override {};
+	void TearDown() override {};
+};
+
 TEST_F(BluetoothUtils, systemTimeToDateTime)
 {
 	SYSTEMTIME st;
@@ -39,6 +49,43 @@ TEST_F(BluetoothUtils, systemTimeToDateTime)
 	st.wMilliseconds = 657;
 
 	ASSERT_STREQ(STR(systemTimeToDateTime(st).toString("MM-dd-yyyy hh:mm:ss.zzz")), "05-23-1987 05:36:02.657");
+}
+
+TEST_F(ObexHeader, headerId)
+{
+	OBEXHeader hdr(OBEXHeader::Name);
+	ASSERT_EQ(hdr.headerId(), OBEXHeader::Name);
+}
+
+TEST_F(ObexHeader, dataType)
+{
+	OBEXHeader count(OBEXHeader::Count);
+	OBEXHeader name(OBEXHeader::Name);
+	OBEXHeader time(OBEXHeader::Time);
+
+	ASSERT_EQ(count.dataType(), OBEXHeader::FOUR_BYTES);
+	ASSERT_EQ(name.dataType(), OBEXHeader::UNICODE);
+	ASSERT_EQ(time.dataType(), OBEXHeader::BINARY);
+}
+
+TEST_F(ObexHeader, value)
+{
+	OBEXHeader count(OBEXHeader::Count);
+	OBEXHeader name(OBEXHeader::Name);
+	OBEXHeader time(OBEXHeader::Time);
+
+	ASSERT_THROW(count.setValue(QString("this should fail")), BluetoothException);
+	ASSERT_NO_THROW(count.setValue(32));
+	ASSERT_EQ(count.value().toInt(), 32);
+
+	ASSERT_THROW(name.setValue(0), BluetoothException);
+	ASSERT_NO_THROW(name.setValue(QString("filename")));
+	ASSERT_EQ(name.value().toString(), "filename");
+
+	QDateTime now = QDateTime::currentDateTime();
+	ASSERT_THROW(time.setValue(QString("this should fail")), BluetoothException);
+	ASSERT_NO_THROW(time.setValue(now));
+	ASSERT_EQ(time.value(), now.toUTC().toString(Qt::ISODate));
 }
 
 TEST_F(BluetoothTest, BluetoothAddress)
