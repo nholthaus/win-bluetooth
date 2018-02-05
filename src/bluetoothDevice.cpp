@@ -3,6 +3,8 @@
 #include <bluetoothapis.h>
 #include <bluetoothUtils.h>
 #include <bluetoothAddress.h>
+#include <bluetoothException.h>
+#include <functional>
 
 #define DEVINFO static_cast<BLUETOOTH_DEVICE_INFO*>(m_deviceInfo)
 
@@ -25,6 +27,13 @@ BluetoothDevice::BluetoothDevice(void* radioHandle /*= nullptr*/, void* deviceIn
 		devinfo->fAuthenticated = info->fAuthenticated;
 		devinfo->stLastSeen = info->stLastSeen;
 		devinfo->stLastUsed = info->stLastUsed;
+
+		// set authentication callback
+		HBLUETOOTH_AUTHENTICATION_REGISTRATION authHandle;
+		bool param;
+		static std::function<bool(LPVOID, PBLUETOOTH_DEVICE_INFO)> callback{ [](LPVOID param, PBLUETOOTH_DEVICE_INFO info) -> bool { throw BluetoothException("OMG AUTHENTICATION!"); } };
+		if (ERROR_SUCCESS != BluetoothRegisterForAuthentication(DEVINFO, &authHandle, (PFN_AUTHENTICATION_CALLBACK)&callback, &param))
+			throw BluetoothException("That sucks!");
 	}
 }
 
@@ -148,16 +157,16 @@ bool BluetoothDevice::authenticated()
 	return m_deviceInfo ? DEVINFO->fAuthenticated : false;
 }
 
-std::string_view BluetoothDevice::lastSeen()
+QDateTime BluetoothDevice::lastSeen()
 {
 	refresh();
-	return m_deviceInfo ? systemTimeToString(DEVINFO->stLastSeen) : "00-00-0000 00:00:00.000";
+	return m_deviceInfo ? systemTimeToDateTime(DEVINFO->stLastSeen) : QDateTime();
 }
 
-std::string_view BluetoothDevice::lastUsed()
+QDateTime BluetoothDevice::lastUsed()
 {
 	refresh();
-	return m_deviceInfo ? systemTimeToString(DEVINFO->stLastUsed) : "00-00-0000 00:00:00.000";
+	return m_deviceInfo ? systemTimeToDateTime(DEVINFO->stLastUsed) : QDateTime();
 }
 
 bool BluetoothDevice::operator<(const BluetoothDevice& other)

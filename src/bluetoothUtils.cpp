@@ -1,16 +1,15 @@
 #include <bluetoothUtils.h>
+#include <QDateTime>
 
-std::string systemTimeToString(const SYSTEMTIME& time)
+QDateTime systemTimeToDateTime(const SYSTEMTIME& time)
 {
-	char buff[24];
-	sprintf_s(buff, 
-		"%02d-%02d-%d %02d:%02d:%02d.%03d",
-		time.wMonth,
-		time.wDay,
-		time.wYear,
-		time.wHour,
-		time.wMinute,
-		time.wSecond,
-		time.wMilliseconds);
-	return std::string(buff);
+	QString dt = QString("%1-%2-%3 %4:%5:%6.%7")
+		.arg(time.wMonth, 2, 10, QChar('0'))
+		.arg(time.wDay, 2, 10, QChar('0'))
+		.arg(time.wYear)
+		.arg(time.wHour, 2, 10, QChar('0'))
+		.arg(time.wMinute, 2, 10, QChar('0'))
+		.arg(time.wSecond, 2, 10, QChar('0'))
+		.arg(time.wMilliseconds, 3, 10, QChar('0'));
+	return QDateTime::fromString(dt, "MM-dd-yyyy hh:mm:ss.zzz");
 }

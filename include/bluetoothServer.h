@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@project WIN-BLUETOOTH
+//	WIN-BLUETOOTH
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -32,46 +32,81 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothUuids.h
-/// @brief	Known bluetooth service class Uuids
+/// @file	bluetoothServer.h
+/// @brief	
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef bluetoothUuids_h__
-#define bluetoothUuids_h__
+#ifndef bluetoothServer_h__
+#define bluetoothServer_h__
 
-//------------------------------
-//	INCLDUES
-//------------------------------
+//-------------------------
+//	INCLUDES
+//-------------------------
 
 #include <QObject>
-#include <QUuid>
+#include <QScopedPointer>
 #include <bluetoothEnums.h>
-#include <unordered_map>
+#include <bluetoothAddress.h>
+#include <memory>
+
+//-------------------------
+//	FORWARD DECLARATIONS
+//-------------------------
+
+class BluetoothUuid;
+class BluetoothServiceInfo;
+class BluetoothServerPrivate;
+class BluetoothSocket;
 
 //--------------------------------------------------------------------------------------------------
-//	BLUETOOTH UUID
+//	BluetoothServer
 //--------------------------------------------------------------------------------------------------
-class BluetoothUuid
+
+class BluetoothServer : public QObject
 {
+	Q_OBJECT
+
 public:
-	
-	BluetoothUuid();
-	BluetoothUuid(Protocol protocol);
-	BluetoothUuid(ServiceClass serviceClass);
 
-	QString toString() const;
+	enum class Error
+	{
+		NoError,
+		UnknownError,
+		PoweredOffError,
+		InputOutputError,
+		ServiceAlreadyRegisteredError,
+		UnsupportedProtocolError,
+	};
+	Q_ENUM(Error);
 
-	operator QUuid() const;
-	operator GUID() const;
+public:
 
-private:
+	BluetoothServer(Protocol serverType = Protocol::RFCOMM, QObject* parent = nullptr);
+	virtual ~BluetoothServer();
 
-	static std::unordered_map<Protocol, QUuid>		m_protocolUuids;
-	static std::unordered_map<ServiceClass, QUuid>	m_serviceClassUuids;
-	
-	QUuid m_uuid;
+	void close();
+	Error error() const;
+	bool hasPendingConnections() const;
+	bool isListening() const;
+	bool listen(const BluetoothAddress& address = BluetoothAddress(), quint16 port = 0);
+	BluetoothServiceInfo listen(const BluetoothUuid& uuid, const QString& serviceName = QString());
+	int maxPendingConnections() const;
+	std::unique_ptr<BluetoothSocket> nextPendingConnection();
+	SecurityFlags securityFlags() const;
+	BluetoothAddress serverAddress() const;
+	quint16 serverPort() const;
+	Protocol serverType() const;
+	void setMaxPendingConnections(int numConnections);
+	void setSecurityFlags(SecurityFlags security);
+
+protected:
+
+	Q_DECLARE_PRIVATE(BluetoothServer);
+	Q_DISABLE_COPY(BluetoothServer);
+	QScopedPointer<BluetoothServerPrivate> d_ptr;
+
 };
 
-#endif // bluetoothUuids_h__
+#endif // bluetoothServer_h__

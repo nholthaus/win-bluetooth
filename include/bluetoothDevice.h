@@ -45,7 +45,8 @@
 //	INCLUDES
 //------------------------------
 
-#include <string>
+#include <QString>
+#include <QDateTime>
 #include <bluetoothAddress.h>
 
 //------------------------------
@@ -80,8 +81,8 @@ public:
 	bool connected();
 	bool remembered();
 	bool authenticated();
-	std::string_view lastSeen();
-	std::string_view lastUsed();
+	QDateTime lastSeen();
+	QDateTime lastUsed();
 
 	bool operator<(const BluetoothDevice& other);
 	bool operator==(const QString& name) const;

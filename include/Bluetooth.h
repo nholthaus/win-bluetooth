@@ -79,6 +79,7 @@ public:
 	static std::unordered_map<QString, BluetoothDevice>&	remoteDevices(bool refreshList = false);
 
 	static QString name(const BluetoothAddress& address);
+	static bool lookupServices(const BluetoothDevice& device);
 
 private:
 

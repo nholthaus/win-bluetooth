@@ -45,9 +45,14 @@ public:
 		socket = ::socket(AF_BTH, SOCK_STREAM, BTHPROTO_RFCOMM);
 
 		if (socket == INVALID_SOCKET)
-			throw BluetoothException(HRESULT_FROM_WIN32(WSAGetLastError()));
+			setError(BluetoothSocket::SocketError::UnknownSocketError);
 
 		btAddress.addressFamily = AF_BTH;
+
+		// set encryption
+		ULONG bEncrypt = TRUE;
+		if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_ENCRYPT, (const char*)&bEncrypt, sizeof(ULONG)))
+			setError(BluetoothSocket::SocketError::HostNotFoundError);
 	}
 
 	~BluetoothSocketPrivate()

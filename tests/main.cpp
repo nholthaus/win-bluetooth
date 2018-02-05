@@ -27,7 +27,7 @@ protected:
 	void TearDown() override {};
 };
 
-TEST_F(BluetoothUtils, systemTimeToString)
+TEST_F(BluetoothUtils, systemTimeToDateTime)
 {
 	SYSTEMTIME st;
 	st.wYear = 1987;
@@ -38,7 +38,7 @@ TEST_F(BluetoothUtils, systemTimeToString)
 	st.wSecond = 02;
 	st.wMilliseconds = 657;
 
-	ASSERT_STREQ(systemTimeToString(st).c_str(), "05-23-1987 05:36:02.657");
+	ASSERT_STREQ(STR(systemTimeToDateTime(st).toString("MM-dd-yyyy hh:mm:ss.zzz")), "05-23-1987 05:36:02.657");
 }
 
 TEST_F(BluetoothTest, BluetoothAddress)
@@ -50,8 +50,8 @@ TEST_F(BluetoothTest, BluetoothAddress)
 
 TEST_F(BluetoothTest, BluetoothUuid)
 {
-	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()), "{00030000-0000-1000-8000-00805F9B34FB}");
-	
+	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()),	"{00030000-0000-1000-8000-00805F9B34FB}");
+	ASSERT_STREQ(STR(BluetoothUuid().toString()),					"{00000000-0000-0000-0000-000000000000}");
 }
 
 TEST_F(BluetoothTest, name)
@@ -110,7 +110,7 @@ TEST_F(BluetoothTest, radioInfo)
 	QHash<QString, BluetoothAddress> addresses;
 
 	// all the test computers have to be added to this list :(
-	addresses["DAUNTLESS"] = 92407701068;
+	addresses["DAUNTLESS"] = 92407793698;
 	addresses["NIC-PC"] = 71340216032535;
 
 	ASSERT_TRUE(addresses.count(Bluetooth::localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
@@ -126,7 +126,7 @@ TEST_F(BluetoothTest, deviceInfo)
 	std::unordered_map<QString, BluetoothAddress> addresses;
 
 	// all the test computers have to be added to this list :(
-	addresses["SAMSUNG-SM-G935V"] = 163237606836978;
+	addresses["BSR36"] = 107442151553;
 
 	for (auto& [name, address] : addresses)
 	{
@@ -135,15 +135,19 @@ TEST_F(BluetoothTest, deviceInfo)
 	}
 
 	std::cout << "REMOTE DEVICES:" << std::endl;
-	for (const auto& [name, address] : Bluetooth::remoteDevices())
+	for (const auto& [name, device] : Bluetooth::remoteDevices())
 		std::cout << "    " << name.toStdString() << std::endl;
+
+// 	for (const auto&[name, device] : Bluetooth::remoteDevices())
+// 		Bluetooth::lookupServices(device);
 }
 
  TEST_F(BluetoothTest, connect)
 {
 	 BluetoothSocket sock;
-	 sock.connectToService("NIC-PC", BluetoothUuid(ServiceClass::MSDNBluetoothConnectionExample));
-	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState);
+	 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
+	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
+//	 sock.write("Hello, World!");
 //	ASSERT_TRUE(Bluetooth::localRadio().connectTo(Bluetooth::remoteDevice("RELENTLESS")));
 }
 

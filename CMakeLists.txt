@@ -21,8 +21,10 @@ list(APPEND HEADER_FILES
 include/bluetooth.h
 include/bluetoothAddress.h
 include/bluetoothDevice.h
+include/bluetoothEnums.h
 include/bluetoothException.h
 include/bluetoothRadio.h
+#include/bluetoothServer.h
 include/bluetoothSocket.h
 include/bluetoothUtils.h
 include/bluetoothUuids.h
@@ -36,6 +38,7 @@ src/bluetoothAddress.cpp
 src/bluetoothDevice.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
+#src/bluetoothServer.cpp
 src/bluetoothSocket.cpp
 src/bluetoothUtils.cpp
 src/bluetoothUuids.cpp

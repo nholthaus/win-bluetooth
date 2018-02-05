@@ -1,8 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@project WIN-BLUETOOTH
-//
-//			!!!!!!!!!!		DO NOT INCLUDE THIS INTO HEADER FILES, ONLY INTO CPP'S		!!!!!!!!!!
+//	
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -34,16 +32,51 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothUtils.h
-/// @brief	Description of a single bluetooth radio
+/// @file	bluetoothEnums.h
+/// @brief	
 //
 //--------------------------------------------------------------------------------------------------
+
+#pragma once
+#ifndef bluetoothEnums_h__
+#define bluetoothEnums_h__
 
 //------------------------------
 //	INCLUDES
 //------------------------------
 
-#include <windows.h>
-#include <QDateTime>
+#include <QFlags>
 
-QDateTime systemTimeToDateTime(const SYSTEMTIME& time);
+//------------------------------
+//	ENUMS
+//------------------------------
+
+// make sure the protocol enums match this list: 
+// https://www.bluetooth.com/specifications/assigned-numbers/service-discovery
+enum class Protocol
+{
+	SDP			= 0x0001,
+	RFCOMM		= 0x0003,
+	OBEX		= 0x0008,
+	L2CAP		= 0x0100,
+};
+
+enum class ServiceClass
+{
+	OPP			= 0x1105,
+	FTP			= 0x1106,
+	SerialPort	= 0x1101,
+	MSDNBluetoothConnectionExample = 0xFFFF,
+};
+
+enum class Security
+{
+	NoSecurity			= 0x00,
+	Authorization		= 0x01,
+	Authentication		= 0x02,
+	Encryption			= 0x04,
+	Secure				= 0x08,
+};
+Q_DECLARE_FLAGS(SecurityFlags, Security);
+
+#endif // bluetoothEnums_h__
