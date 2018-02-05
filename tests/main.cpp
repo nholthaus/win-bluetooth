@@ -7,6 +7,10 @@
 #include <iostream>
 #include <QHash>
 #include <QHostInfo>
+#include <QBuffer>
+#include <QDataStream>
+#include <array>
+#include <QCoreApplication>
 
 #define STR(s) s.toStdString().c_str()
 
@@ -86,6 +90,29 @@ TEST_F(ObexHeader, value)
 	ASSERT_THROW(time.setValue(QString("this should fail")), BluetoothException);
 	ASSERT_NO_THROW(time.setValue(now));
 	ASSERT_EQ(time.value(), now.toUTC().toString(Qt::ISODate));
+}
+
+TEST_F(ObexHeader, stream)
+{
+	QByteArray ba;
+	QBuffer buff(&ba);
+	buff.open(QBuffer::ReadWrite);
+	
+	QDataStream out(&buff);
+
+	ASSERT_EQ(ba.size(), 0);
+
+	OBEXHeader count(OBEXHeader::Count, 33);
+	std::array<char, 5> countData{0xC0, 0x00, 0x00, 0x00, 0x21};
+	out << count;
+	std::cout << std::hex << ba.data();
+
+	EXPECT_EQ(ba.size(), countData.size());
+
+	qApp->processEvents();
+
+	for (int i = 0; i < countData.size(); ++i)	
+		EXPECT_EQ(ba.at(i), countData.at(i)) << "at index " << i;
 }
 
 TEST_F(BluetoothTest, BluetoothAddress)
@@ -200,6 +227,8 @@ TEST_F(BluetoothTest, deviceInfo)
 
 int main(int argc, char* argv[])
 {
+	QCoreApplication app(argc, argv);
+
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
 }

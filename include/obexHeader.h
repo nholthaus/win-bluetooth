@@ -143,4 +143,6 @@ private:
 
 };
 
+QDataStream& operator<<(QDataStream &out, const OBEXHeader &header);
+
 #endif // obexHeader_h__
