@@ -50,9 +50,9 @@ public:
 		btAddress.addressFamily = AF_BTH;
 
 		// set encryption
-		ULONG bEncrypt = TRUE;
-		if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_ENCRYPT, (const char*)&bEncrypt, sizeof(ULONG)))
-			setError(BluetoothSocket::SocketError::HostNotFoundError);
+//		ULONG bEncrypt = TRUE;
+//		if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_ENCRYPT, (const char*)&bEncrypt, sizeof(ULONG)))
+//			setError(BluetoothSocket::SocketError::HostNotFoundError);
 	}
 
 	~BluetoothSocketPrivate()
@@ -326,26 +326,33 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 {
 	Q_D(BluetoothSocket);
 
-	if (auto ret = ::send(d->socket, data, maxlen, 0); ret == SOCKET_ERROR)
+	if(auto bytesAvailable = ::recv(d->socket, data, maxlen, MSG_PEEK); bytesAvailable)
 	{
-		switch (WSAGetLastError())
+		if (auto ret = ::recv(d->socket, data, maxlen, 0); ret == SOCKET_ERROR)
 		{
-		case WSAENETDOWN:
-			d->setError(SocketError::NetworkError);
-		case WSAETIMEDOUT:
-			d->setError(SocketError::HostNotFoundError);
-		default:
-			d->setError(SocketError::UnknownSocketError);
-		}
+			switch (WSAGetLastError())
+			{
+			case WSAENETDOWN:
+				d->setError(SocketError::NetworkError);
+			case WSAETIMEDOUT:
+				d->setError(SocketError::HostNotFoundError);
+			default:
+				d->setError(SocketError::UnknownSocketError);
+			}
 
-		return 0;
-	}
-	else if (!ret)
-	{
-		return 0;
+			return 0;
+		}
+		else if (!ret)
+		{
+			return 0;
+		}
+		else
+			return ret;
 	}
 	else
-		return ret;
+	{
+		return 0;
+	}
 }
 
 //--------------------------------------------------------------------------------------------------

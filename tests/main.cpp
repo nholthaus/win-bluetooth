@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <bluetoothUtils.h>
 #include <obexHeader.h>
+#include <obexOperation.h>
 
 #include <iostream>
 #include <QHash>
@@ -11,6 +12,7 @@
 #include <QDataStream>
 #include <array>
 #include <QCoreApplication>
+#include <QTimer>
 
 #define STR(s) s.toStdString().c_str()
 
@@ -32,11 +34,11 @@ protected:
 	void TearDown() override {};
 };
 
-class ObexHeader : public ::testing::Test {
+class OBEX : public ::testing::Test {
 protected:
 
-	ObexHeader() = default;
-	virtual ~ObexHeader() = default;
+	OBEX() = default;
+	virtual ~OBEX() = default;
 	void SetUp() override {};
 	void TearDown() override {};
 };
@@ -55,13 +57,13 @@ TEST_F(BluetoothUtils, systemTimeToDateTime)
 	ASSERT_STREQ(STR(systemTimeToDateTime(st).toString("MM-dd-yyyy hh:mm:ss.zzz")), "05-23-1987 05:36:02.657");
 }
 
-TEST_F(ObexHeader, headerId)
+TEST_F(OBEX, headerId)
 {
 	OBEXHeader hdr(OBEXHeader::Name);
 	ASSERT_EQ(hdr.headerId(), OBEXHeader::Name);
 }
 
-TEST_F(ObexHeader, dataType)
+TEST_F(OBEX, dataType)
 {
 	OBEXHeader count(OBEXHeader::Count);
 	OBEXHeader name(OBEXHeader::Name);
@@ -72,17 +74,17 @@ TEST_F(ObexHeader, dataType)
 	ASSERT_EQ(time.dataType(), OBEXHeader::BINARY);
 }
 
-TEST_F(ObexHeader, value)
+TEST_F(OBEX, value)
 {
 	OBEXHeader count(OBEXHeader::Count);
 	OBEXHeader name(OBEXHeader::Name);
 	OBEXHeader time(OBEXHeader::Time);
 
 	ASSERT_THROW(count.setValue(QString("this should fail")), BluetoothException);
-	ASSERT_NO_THROW(count.setValue(32));
-	ASSERT_EQ(count.value().toInt(), 32);
+	ASSERT_NO_THROW(count.setValue(32u));
+	ASSERT_EQ(count.value().toInt(), 32u);
 
-	ASSERT_THROW(name.setValue(0), BluetoothException);
+	ASSERT_THROW(name.setValue(0u), BluetoothException);
 	ASSERT_NO_THROW(name.setValue(QString("filename")));
 	ASSERT_EQ(name.value().toString(), "filename");
 
@@ -92,27 +94,59 @@ TEST_F(ObexHeader, value)
 	ASSERT_EQ(time.value(), now.toUTC().toString(Qt::ISODate));
 }
 
-TEST_F(ObexHeader, stream)
+TEST_F(OBEX, stream)
 {
 	QByteArray ba;
-	QBuffer buff(&ba);
-	buff.open(QBuffer::ReadWrite);
-	
-	QDataStream out(&buff);
+	QDataStream out(&ba, QIODevice::ReadWrite);
 
 	ASSERT_EQ(ba.size(), 0);
 
-	OBEXHeader count(OBEXHeader::Count, 33);
+	OBEXHeader count(OBEXHeader::Count, 33u);
 	std::array<char, 5> countData{0xC0, 0x00, 0x00, 0x00, 0x21};
 	out << count;
-	std::cout << std::hex << ba.data();
 
 	EXPECT_EQ(ba.size(), countData.size());
 
-	qApp->processEvents();
-
 	for (int i = 0; i < countData.size(); ++i)	
 		EXPECT_EQ(ba.at(i), countData.at(i)) << "at index " << i;
+}
+
+TEST_F(OBEX, connect)
+{
+	OBEXConnect c(8192);
+	c.addOptionalHeader(OBEXHeader::Count,	4u);
+	c.addOptionalHeader(OBEXHeader::Length,	0xF483u);
+
+	QByteArray ba;
+	QDataStream out(&ba, QIODevice::ReadWrite);
+
+	out << c;
+
+	// from section 3.3.1.9 of the OBEX standard
+	std::array<char, 17> truth{ 0x80, 0x00, 0x11, 0x10, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x04, 0xC3, 0x00, 0x00, 0xF4, 0x83};
+
+	ASSERT_EQ(ba.size(), truth.size());
+
+	for (int i = 0; i < truth.size(); ++i)
+		EXPECT_EQ(ba.at(i), truth.at(i)) << "at index " << i;
+}
+
+TEST_F(OBEX, fromRawData)
+{
+	std::array<char, 27> truth{ 0xC0, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x06, 0x68, 0x69, 0x2E, 0x74, 0x78, 0x74, 0xC3, 0x00, 0x00, 0xF4, 0x83, 0x42, 0x00, 0x05, 0x74, 0x65, 0x78, 0x74, 0x00 };
+	auto headers = OBEXHeader::fromByteArray(QByteArray::fromRawData(&truth[0], truth.size()));
+
+	EXPECT_EQ(headers.at(0).headerId(), OBEXHeader::Count);
+	EXPECT_EQ(headers.at(0).value().toUInt(), 4);
+
+	EXPECT_EQ(headers.at(1).headerId(), OBEXHeader::Name);
+	EXPECT_EQ(headers.at(1).value().toString(), QString("hi.txt"));
+
+	EXPECT_EQ(headers.at(2).headerId(), OBEXHeader::Length);
+	EXPECT_EQ(headers.at(2).value().toString(), 0xF483u);
+
+	EXPECT_EQ(headers.at(3).headerId(), OBEXHeader::Type);
+	EXPECT_STREQ(headers.at(3).value().toByteArray(), "text");
 }
 
 TEST_F(BluetoothTest, BluetoothAddress)
@@ -211,16 +245,40 @@ TEST_F(BluetoothTest, deviceInfo)
 	std::cout << "REMOTE DEVICES:" << std::endl;
 	for (const auto& [name, device] : Bluetooth::remoteDevices())
 		std::cout << "    " << name.toStdString() << std::endl;
-
-// 	for (const auto&[name, device] : Bluetooth::remoteDevices())
-// 		Bluetooth::lookupServices(device);
 }
 
  TEST_F(BluetoothTest, connect)
 {
+	 QEventLoop eventLoop;
+
 	 BluetoothSocket sock;
-	 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
-	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
+	 
+	 QObject::connect(&sock, &BluetoothSocket::readyRead, &eventLoop, [&sock, &eventLoop]()
+	 {
+		 QByteArray ba = sock.readAll();
+		 EXPECT_FALSE(ba.isEmpty());
+		 eventLoop.exit();
+	 });
+	 QTimer::singleShot(0, &eventLoop, [&sock]()
+	 {
+		 QDataStream sockStream(&sock);
+
+		 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
+		 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
+
+		OBEXConnect c(8192);
+//		c.addOptionalHeader(OBEXHeader::Count, 1);
+		c.addOptionalHeader(OBEXHeader::Name, "hi.txt");
+		c.addOptionalHeader(OBEXHeader::Description, "hi.txt");
+//		c.addOptionalHeader(OBEXHeader::Type, "text");
+
+		sock.write(c);
+		sock.waitForReadyRead(1000);
+		QByteArray ba = sock.read(7);
+		EXPECT_FALSE(ba.isEmpty());
+	 });
+
+	 eventLoop.exec();
 //	 sock.write("Hello, World!");
 //	ASSERT_TRUE(Bluetooth::localRadio().connectTo(Bluetooth::remoteDevice("RELENTLESS")));
 }

@@ -44,7 +44,7 @@ OBEXHeader::OBEXHeader(HeaderIdentifier id, const QDateTime& value)
 //--------------------------------------------------------------------------------------------------
 //	OBEXHeader () []
 //--------------------------------------------------------------------------------------------------
-OBEXHeader::OBEXHeader(HeaderIdentifier id, unsigned char value)
+OBEXHeader::OBEXHeader(HeaderIdentifier id, char value)
 	: m_headerId(id)
 {
 	setValue(value);
@@ -53,10 +53,28 @@ OBEXHeader::OBEXHeader(HeaderIdentifier id, unsigned char value)
 //--------------------------------------------------------------------------------------------------
 //	OBEXHeader () []
 //--------------------------------------------------------------------------------------------------
-OBEXHeader::OBEXHeader(HeaderIdentifier id, int value)
+OBEXHeader::OBEXHeader(HeaderIdentifier id, unsigned int value)
 	: m_headerId(id)
 {
 	setValue(value);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	OBEXHeader (public ) []
+//--------------------------------------------------------------------------------------------------
+OBEXHeader::OBEXHeader(HeaderIdentifier id, const char* value)
+	: m_headerId(id)
+{
+	setValue(QString(value));
+}
+
+//--------------------------------------------------------------------------------------------------
+//	OBEXHeader (public ) []
+//--------------------------------------------------------------------------------------------------
+OBEXHeader::OBEXHeader(HeaderIdentifier id, const char* value, int length)
+	: m_headerId(id)
+{
+	setValue(value, length);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -84,6 +102,28 @@ QVariant OBEXHeader::value() const noexcept
 }
 
 //--------------------------------------------------------------------------------------------------
+//	length (public ) []
+//--------------------------------------------------------------------------------------------------
+quint16 OBEXHeader::length() const noexcept
+{
+	switch (dataType())
+	{
+	case OBEXHeader::UNICODE:
+		return 4 + 2 * m_value.toString().length();	// 1 for id + 2 for length prefix + size of string (x2 for unicode) + 1 for null terminator
+	case OBEXHeader::BINARY:
+		return 3 + m_value.toByteArray().length();	// 1 for id + 2 for size prefix + length of byte array
+	case OBEXHeader::BYTE:
+		return 2;									// 1 + 1 for the id
+	case OBEXHeader::FOUR_BYTES:
+		return 5;									// 4 + 1 for the id
+	}
+
+	// if you hit this, somehow the data type is corrupt or someone edited it wrongly. Check the standard.
+	assert(false);
+	return 0;
+}
+
+//--------------------------------------------------------------------------------------------------
 //	setValue (public ) []
 //--------------------------------------------------------------------------------------------------
 void OBEXHeader::setValue(const QString& value)
@@ -108,7 +148,7 @@ void OBEXHeader::setValue(const QByteArray& value)
 //--------------------------------------------------------------------------------------------------
 //	setValue (public ) []
 //--------------------------------------------------------------------------------------------------
-void OBEXHeader::setValue(unsigned char value)
+void OBEXHeader::setValue(char value)
 {
 	if (dataType() == BYTE)
 		m_value = value;
@@ -119,7 +159,7 @@ void OBEXHeader::setValue(unsigned char value)
 //--------------------------------------------------------------------------------------------------
 //	setValue (public ) []
 //--------------------------------------------------------------------------------------------------
-void OBEXHeader::setValue(int value)
+void OBEXHeader::setValue(unsigned int value)
 {
 	if (dataType() == FOUR_BYTES)
 		m_value = value;
@@ -139,6 +179,100 @@ void OBEXHeader::setValue(const QDateTime& value)
 }
 
 //--------------------------------------------------------------------------------------------------
+//	setValue (public ) []
+//--------------------------------------------------------------------------------------------------
+void OBEXHeader::setValue(const char* value, int length)
+{
+	if (length)
+		setValue(QByteArray::fromRawData(value, length));
+}
+
+//--------------------------------------------------------------------------------------------------
+//	operator+ (public ) []
+//--------------------------------------------------------------------------------------------------
+unsigned short OBEXHeader::operator+(const OBEXHeader& other)
+{
+	return length() + other.length();
+}
+
+//--------------------------------------------------------------------------------------------------
+//	operator QByteArray (public ) []
+//--------------------------------------------------------------------------------------------------
+OBEXHeader::operator QByteArray() const
+{
+	QByteArray ba;
+	QDataStream s(&ba, QIODevice::WriteOnly);
+	s << *this;
+	return ba;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	fromByteArray (public ) [static ]
+//--------------------------------------------------------------------------------------------------
+std::vector<OBEXHeader> OBEXHeader::fromByteArray(const QByteArray& data)
+{
+	std::vector<OBEXHeader> optionalHeaders;
+
+	int i = 0;
+	quint16 index = 0;
+	quint16 length = 0;
+	unsigned int val = 0;
+	ushort ch;
+	QString str;
+
+	while (index < data.size())	// TODO: add some time of timeout or safety to this loop
+	{
+		HeaderIdentifier id = static_cast<HeaderIdentifier>(data.at(index++));	// if you think this doesn't work, lookup the difference between i++ and ++i.
+		HeaderDataType type = (HeaderDataType)(DATA_TYPE_MASK & id);
+		switch (type)
+		{
+		case BYTE:
+			optionalHeaders.emplace_back(id, data.at(index++));
+			break;
+		case FOUR_BYTES:
+			// convert to little endian numbers
+			for (i = 0; i < sizeof(int); ++i)
+			{
+				val <<= 8;
+				val |= data[index++];
+			}
+			optionalHeaders.emplace_back(id, val);
+			break;
+		case BINARY:
+			// convert to little endian numbers
+			for (i = 0; i < sizeof(length); ++i)
+			{
+				length <<= 8;
+				length |= data[index++];
+			}
+			optionalHeaders.emplace_back(id, (char*)&data.data()[index], length);
+			index += length;
+			break;
+		case UNICODE:
+			// convert to little endian numbers
+			for (i = 0; i < sizeof(length); ++i)
+			{
+				length <<= 8;
+				length |= data[index++];
+			}
+			// convert to little-endian unicode from big endian utf-16
+			for (i = 0; i <length; ++i)
+			{
+				ch |= data[index++];
+				ch <<= 8;
+				ch |= data[index++];
+				str.append(ch);
+			}
+			optionalHeaders.emplace_back(id, str);
+			index += length;
+			break;
+		}
+	}
+
+	return optionalHeaders;
+}
+
+//--------------------------------------------------------------------------------------------------
 //	operator<< (public ) []
 //--------------------------------------------------------------------------------------------------
 QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
@@ -151,7 +285,9 @@ QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
 	[[maybe_unused]] QString str;
 	[[maybe_unused]] QByteArray ba;
 
-	out << header.headerId();
+	out << (unsigned char)header.headerId();	// seems like Qt doesn't handle enum classes in the expected way. 
+												// The underlying type is `unsigned char` so this cast "should" be unnecessary.
+												// In point of fact it is required.
 
 	switch (header.dataType())
 	{

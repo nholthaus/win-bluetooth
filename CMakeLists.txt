@@ -30,6 +30,8 @@ include/bluetoothUtils.h
 include/bluetoothUuids.h
 include/obexHeader.h
 include/obexOperation.h
+include/obexResponse.h
+include/gsl-lite.h
 include/QStringHash.h
 )
 
@@ -46,6 +48,7 @@ src/bluetoothUtils.cpp
 src/bluetoothUuids.cpp
 src/obexHeader.cpp
 src/obexOperation.cpp
+src/obexResponse.cpp
 )
 
 # on windows, append headers to source so they show up in visual studio

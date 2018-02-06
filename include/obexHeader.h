@@ -65,7 +65,7 @@ class OBEXHeader
 
 public:
 
-	enum HeaderDataType : unsigned char
+	enum HeaderDataType : quint8
 	{
 		UNICODE					= 0x00, ///< null terminated Unicode text, length prefixed with 2 byte unsigned integer
 		BINARY					= 0x40, ///< byte sequence, length prefixed with 2 byte unsigned integer
@@ -74,7 +74,7 @@ public:
 	};
 	Q_ENUM(HeaderDataType);
 
-	enum HeaderIdentifier : unsigned char
+	enum HeaderIdentifier : quint8
 	{
 		Count					= 0xC0, ///< Number of objects (used by Connect)
 		Name					= 0x01, ///< name of the object (often a file name)
@@ -118,29 +118,41 @@ public:
 public:
 
 	OBEXHeader(HeaderIdentifier id) noexcept;
+	OBEXHeader(HeaderIdentifier id, const char* value);					// for null-terminated string literals
+	OBEXHeader(HeaderIdentifier id, const char* value, int length);		// for raw data reads
 	OBEXHeader(HeaderIdentifier id, const QString& value);
 	OBEXHeader(HeaderIdentifier id, const QByteArray& value);
 	OBEXHeader(HeaderIdentifier id, const QDateTime& value);
-	OBEXHeader(HeaderIdentifier id, unsigned char value);
-	OBEXHeader(HeaderIdentifier id, int value);
+	explicit OBEXHeader(HeaderIdentifier id, char value);
+	explicit OBEXHeader(HeaderIdentifier id, unsigned int value);
 
 	HeaderDataType dataType() const noexcept;
 	HeaderIdentifier headerId() const noexcept;
 	QVariant value() const noexcept;
+	quint16 length() const noexcept;
 
 	// there is purposely no QVariant interface, so that each setValue function can do a sanity
 	// check against the header data type.
+	void setValue(const char* value, int length);
 	void setValue(const QString& value);
 	void setValue(const QByteArray& value);
 	void setValue(const QDateTime& value);
-	void setValue(unsigned char value);
-	void setValue(int value);
+	void setValue(char value);
+	void setValue(unsigned int value);
 	
+	unsigned short operator+(const OBEXHeader& other);
+	operator QByteArray() const;
+
+	static std::vector<OBEXHeader> fromByteArray(const QByteArray& data);
+
 private:
 
 	HeaderIdentifier	m_headerId;
 	QVariant			m_value;
 
+private:
+
+	static constexpr quint8 DATA_TYPE_MASK = 0xC0;
 };
 
 QDataStream& operator<<(QDataStream &out, const OBEXHeader &header);

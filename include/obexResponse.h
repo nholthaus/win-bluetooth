@@ -28,124 +28,105 @@
 //--------------------------------------------------------------------------------------------------
 //
 // ATTRIBUTION:
-//
+// https://github.com/martinmoene/gsl-lite/releases
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file		obexOperation.h
-/// @brief		Class to describe an OBEX operation per chapter 3.3 of the standard
-/// @details	includes derived classes for:
-///				- connection
+/// @file	obexResponse.h
+/// @brief	OBEX server response classes
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef obexOperation_h__
-#define obexOperation_h__
+#ifndef obexResponse_h__
+#define obexResponse_h__
 
 //-------------------------
 //	INCLUDES
 //-------------------------
 
 #include <QObject>
-#include <QDataStream>
+#include <gsl-lite.h> 
 #include <obexHeader.h>
-#include <vector>
 
 //-------------------------
 //	FORWARD DECLARATIONS
 //-------------------------
 
+class QDataStream;
 
 //--------------------------------------------------------------------------------------------------
-//	OBEXOperation
+//	OBEXResponse
 //--------------------------------------------------------------------------------------------------
-class OBEXOperation
+class OBEXResponse
 {
 	Q_GADGET
 
 public:
 
-	// Enums 0x10 to 0x1F are user definable if need be
-	enum class OBEXOpCode : quint8
-	{
-		Connect			= 0x80,
-		Disconnect		= 0x81,
-		Put				= 0x02,
-		Get				= 0x03,
-		SetPath			= 0x85,
-		Session			= 0x87,
-		Abort			= 0xFF,
-	};
-	Q_ENUM(OBEXOpCode);
+	friend QDataStream& operator>>(QDataStream& in, OBEXResponse& response);
 
-	friend QDataStream& operator<<(QDataStream &out, const OBEXOperation &op);
+	// OBEX operation response codes. See OBEX standard chapter 3.2.1
+	class Code
+	{
+	public:
+
+		enum class Enum : quint8
+		{
+			INVALID			= 0x00,
+		};
+
+		Code(quint8 value);
+		operator quint8() const;
+		bool isFinal() const;
+
+	private:
+
+		Code::Enum	m_code;
+		bool		m_isFinal = false;
+	};	
 
 public:
 
-	OBEXOperation(OBEXOpCode opcode);
-	virtual ~OBEXOperation() = default;
-	
-	OBEXOperation::OBEXOpCode opcode() const noexcept;
-	void setOpcode(OBEXOperation::OBEXOpCode val);
-
-	quint16 length() const noexcept;
-	QByteArray requestData() const noexcept;
-
-	// prefer the templated version, which is able to construct the headers inplace
-	template<class... Args>
-	void addOptionalHeader(Args... args)
-	{
-		m_optionalHeaders.emplace_back(std::forward<Args>(args)...);
-	}
-
-	void addOptionalHeader(const OBEXHeader& header);
-	void addOptionalHeader(OBEXHeader&& header);
-
-	operator QByteArray() const;
+	OBEXResponse() = default;
+	virtual ~OBEXResponse() = default;
+	virtual gsl::string_span data() = 0;
+	virtual quint16 packetLength() = 0;
 
 protected:
 
-	// if derived classes require more than just an opcode, length, and headers,
-	// us this function to set the additional data
-	void setRequestData(const QByteArray& data);
-	void setRequestData(QByteArray&& data);
-
-	quint16 lengthOfRequestData() const;
-	quint16 lengthOfOptionalHeaders() const;
-
-private:
-
-	OBEXOpCode					m_opcode;
-	QByteArray					m_requestData;
-	std::vector<OBEXHeader>		m_optionalHeaders;
-
-private:
-
-	// CONSTANTS
-	static constexpr unsigned short SIZE_OF_OPCODE = sizeof(unsigned char);
-	static constexpr unsigned short SIZE_OF_PACKET_LENGTH = sizeof(unsigned short);
-	static constexpr unsigned short BASE_LENGTH = SIZE_OF_OPCODE + SIZE_OF_PACKET_LENGTH;
-
+	std::vector<OBEXHeader>	m_optionalHeaders;
 };
 
-QDataStream& operator<<(QDataStream &out, const OBEXOperation &op);
+QDataStream& operator>>(QDataStream& in, OBEXResponse& response);
 
 //--------------------------------------------------------------------------------------------------
-//	OBEXConnect
+//	OBEXConnectResponse
 //--------------------------------------------------------------------------------------------------
 
-class OBEXConnect : public OBEXOperation
+class OBEXConnectResponse : public OBEXResponse
 {
 public:
 
-	OBEXConnect(quint16 maxPacketLength = 65535);	// default is max permitted by the standard
-	virtual ~OBEXConnect() = default;
+	OBEXConnectResponse() = default;
+	virtual ~OBEXConnectResponse() = default;
+	virtual gsl::string_span data() override;
+	virtual quint16 packetLength() override;	// the return value will generally not be valid until after data has been streamed into the class.
 
-protected:
+private:
 
-	static constexpr quint8 OBEX_VERSION	= 0x10;
-	static constexpr quint8 OBEX_FLAGS		= 0x00;
+#pragma pack(push, 1)
+	struct Data
+	{
+		OBEXResponse::Code::Enum    code			= Code::Enum::INVALID;
+		quint16						length			= 0;
+		quint8						version			= 0;
+		quint8						flags			= 0;
+		quint16						maxPacketLength = 0;
+	} m_data;
+#pragma pack(pop)
 };
 
-#endif // obexOperation_h__
+
+
+#endif // obexResponse_h__
