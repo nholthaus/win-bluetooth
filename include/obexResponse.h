@@ -74,11 +74,16 @@ public:
 		enum class Enum : quint8
 		{
 			INVALID			= 0x00,
+			CONTINUE		= 0x10,
+			SUCCESS			= 0x20,
+
 		};
 
 		Code(quint8 value);
 		operator quint8() const;
 		bool isFinal() const;
+		bool operator==(const Code& other) const;
+		bool operator!=(const Code& other) const;
 
 	private:
 
@@ -94,9 +99,11 @@ public:
 	virtual quint16 packetLength() = 0;		// packet length value from the response data
 	virtual bool validateAndFixup() = 0;	// called at the end of operator>>. Used to validate code fields, and convert
 											// large types from big to little endian. Returns true on success.
+	bool isValid() const;
 
 protected:
 
+	bool m_valid = false;
 	std::vector<OBEXHeader>	m_optionalHeaders;
 };
 

@@ -2,6 +2,11 @@
 #include <QDataStream>
 #include <memory>
 #include <bluetoothException.h>
+#include <QtEndian>
+
+// because of the way the data is streamed, this macro actually converts the input to 
+// little endian
+#define LE(var) var = qToBigEndian(var);
 
 //--------------------------------------------------------------------------------------------------
 //	operator>> (public ) []
@@ -12,6 +17,8 @@ QDataStream& operator>>(QDataStream& in, OBEXResponse& response)
 
 	// read in the base packet
 	in.readRawData(span.begin(), static_cast<int>(span.length()));
+
+	response.m_valid = response.validateAndFixup();
 
 	// read in the optional headers
 	auto amountLeft = response.packetLength() - span.length();
@@ -25,9 +32,6 @@ QDataStream& operator>>(QDataStream& in, OBEXResponse& response)
 		// parse the optional headers
 		response.m_optionalHeaders = OBEXHeader::fromByteArray(QByteArray::fromRawData(buffer, static_cast<int>(amountLeft)));
 	}
-
-	if (!response.validateAndFixup())
-		throw BluetoothException("Invalid OBEX Response");
 
 	return in;
 }
@@ -53,8 +57,10 @@ quint16 OBEXConnectResponse::packetLength()
 //--------------------------------------------------------------------------------------------------
 bool OBEXConnectResponse::validateAndFixup()
 {
-	bool valid = true;
-	valid &= (m_data.code == Code::Enum::INVALID);
+	LE(m_data.maxPacketLength);
+	LE(m_data.length);
+
+	return (m_data.code == Code::Enum::SUCCESS);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -62,7 +68,7 @@ bool OBEXConnectResponse::validateAndFixup()
 //--------------------------------------------------------------------------------------------------
 OBEXResponse::Code::Code(quint8 value)
 	: m_code((Code::Enum)(value & 0x7F))	// clear the MSB
-	, m_isFinal(value & 0x80)			// only look at the MSB
+	, m_isFinal(value & 0x80)				// only look at the MSB
 {
 
 }
@@ -81,4 +87,29 @@ OBEXResponse::Code::operator quint8() const
 bool OBEXResponse::Code::isFinal() const
 {
 	return m_isFinal;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	operator!= (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXResponse::Code::operator!=(const Code& other) const
+{
+	// disregard the MSB
+	return (((quint8)m_code & 0x7F) == ((quint8)other.m_code & 0x7F));
+}
+
+//--------------------------------------------------------------------------------------------------
+//	operator== (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXResponse::Code::operator==(const Code& other) const
+{
+	return !(*this == other);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	isValid (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXResponse::isValid() const
+{
+	return m_valid;
 }
