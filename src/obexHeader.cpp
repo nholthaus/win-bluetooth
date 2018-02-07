@@ -109,7 +109,7 @@ quint16 OBEXHeader::length() const noexcept
 	switch (dataType())
 	{
 	case OBEXHeader::UNICODE:
-		return 4 + 2 * m_value.toString().length();	// 1 for id + 2 for length prefix + size of string (x2 for unicode) + 1 for null terminator
+		return 6 + 2 * m_value.toString().length();	// 1 for id + 2 for length prefix + 1 for null terminator + 2 for the byte order mark + size of string (x2 for unicode) 
 	case OBEXHeader::BINARY:
 		return 3 + m_value.toByteArray().length();	// 1 for id + 2 for size prefix + length of byte array
 	case OBEXHeader::BYTE:
@@ -255,14 +255,7 @@ std::vector<OBEXHeader> OBEXHeader::fromByteArray(const QByteArray& data)
 				length <<= 8;
 				length |= data[index++];
 			}
-			// convert to little-endian unicode from big endian utf-16
-			for (i = 0; i <length; ++i)
-			{
-				ch |= data[index++];
-				ch <<= 8;
-				ch |= data[index++];
-				str.append(ch);
-			}
+			str = QString::fromUtf16(reinterpret_cast<const unsigned short*>(&data.data()[index]), length / 2 - 1);	// divide by two because length is in bytes, unicode chars are 2 bytes. Also strip the null terminator, qstring will add one
 			optionalHeaders.emplace_back(id, str);
 			index += length;
 			break;
@@ -284,6 +277,7 @@ QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
 
 	[[maybe_unused]] QString str;
 	[[maybe_unused]] QByteArray ba;
+	[[maybe_unused]] quint16 length;
 
 	out << (unsigned char)header.headerId();	// seems like Qt doesn't handle enum classes in the expected way. 
 												// The underlying type is `unsigned char` so this cast "should" be unnecessary.
@@ -293,14 +287,20 @@ QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
 	{
 	case OBEXHeader::UNICODE:
 
+		// convert the QString to unicode
 		static_assert(sizeof(quint16) == sizeof(QChar), "Size mismatch");
 
 		if (!header.value().canConvert<QString>())
 			throw BluetoothException("Cannot convert OBEX header value to string");	// this should be caught in `setValue`, but just in case...
 
 		str = header.value().toString();
-		out << ((quint16)str.length() + sizeof(QChar));
-		out << str.utf16();
+		str.prepend(QChar::ByteOrderMark);		// necessary for receiver to interpret endianess
+		length = (str.size() + 1) * 2;			// +1 is for NULL terminator, *2 is because they are 2-byte unicode chars	
+		ba = QByteArray::fromRawData(reinterpret_cast<const char*>(str.constData()), length);
+
+		// don't output the byte array directly or it will prepend it's size and a tag, which doesn't conform to the protocol.
+		out << length;
+		out.writeRawData(ba.constData(), length);
 
 		break;
 
@@ -309,8 +309,9 @@ QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
 			throw BluetoothException("Cannot convert OBEX header value to byte array");	// this should be caught in `setValue`, but just in case...
 
 		ba = header.value().toByteArray();
-		out << (quint16)ba.length();
-		out << ba;
+		length = (quint16)ba.length();
+		out << length;
+		out.writeRawData(ba.constData(), length);
 
 		break;
 

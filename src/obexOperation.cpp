@@ -118,12 +118,18 @@ quint16 OBEXOperation::lengthOfOptionalHeaders() const
 //--------------------------------------------------------------------------------------------------
 QDataStream& operator<<(QDataStream &out, const OBEXOperation &op)
 {
- 	out << (quint8)op.m_opcode;
-  	out << op.length();
+	// don't stream the parameters 1 at a time because they need to be written to the socket as a packet
+	QByteArray ba;
+	QDataStream s(&ba, QIODevice::WriteOnly);
+
+	s << (quint8)op.m_opcode;
+	s << op.length();
 	for (quint8 c : op.m_requestData)
-		out << c;
+		s << c;
 	for(const auto& header : op.m_optionalHeaders)
-		out << header;
+		s << header;
+
+	out.writeRawData(ba.constData(), ba.length());
 
 	return out;
 }

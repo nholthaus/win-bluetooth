@@ -1,9 +1,12 @@
+#define NOMINMAX
+
 #include <gtest/gtest.h>
 #include <win-bluetooth>
 #include <windows.h>
 #include <bluetoothUtils.h>
 #include <obexHeader.h>
 #include <obexOperation.h>
+#include <obexResponse.h>
 
 #include <iostream>
 #include <QHash>
@@ -125,15 +128,29 @@ TEST_F(OBEX, connect)
 	// from section 3.3.1.9 of the OBEX standard
 	std::array<char, 17> truth{ 0x80, 0x00, 0x11, 0x10, 0x00, 0x20, 0x00, 0xC0, 0x00, 0x00, 0x00, 0x04, 0xC3, 0x00, 0x00, 0xF4, 0x83};
 
-	ASSERT_EQ(ba.size(), truth.size());
+	EXPECT_EQ(ba.size(), truth.size());
 
 	for (int i = 0; i < truth.size(); ++i)
 		EXPECT_EQ(ba.at(i), truth.at(i)) << "at index " << i;
+
+	OBEXConnect c2(8192);
+	c2.addOptionalHeader(OBEXHeader::Name, "hi.txt");
+
+	QByteArray ba2;
+	QDataStream out2(&ba2, QIODevice::ReadWrite);
+
+	out2 << c2;
+	std::array<char, 26> truth2{ 0x80, 0x00, 0x19, 0x10, 0x00, 0x20, 0x00, 0x01, 0x00, 0x10, 0xFF, 0xFE, 0x68, 0x00, 0x69, 0x00, 0x2E, 0x00, 0x74, 0x00, 0x78, 0x00, 0x74, 0x00, 0x00, 0x00 };
+
+	EXPECT_EQ(ba2.size(), truth2.size());
+
+	for (int i = 0; i < truth2.size(); ++i)
+		EXPECT_EQ(ba2.at(i), truth2.at(i)) << "at index " << i;
 }
 
 TEST_F(OBEX, fromRawData)
 {
-	std::array<char, 27> truth{ 0xC0, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x06, 0x68, 0x69, 0x2E, 0x74, 0x78, 0x74, 0xC3, 0x00, 0x00, 0xF4, 0x83, 0x42, 0x00, 0x05, 0x74, 0x65, 0x78, 0x74, 0x00 };
+	std::array<char, 34> truth{ 0xC0, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x10, 0xFF, 0xFE, 0x68, 0x00, 0x69, 0x00, 0x2E, 0x00, 0x74, 0x00, 0x78, 0x00, 0x74, 0x00, 0x00, 0x00, 0xF4, 0x83, 0x42, 0x00, 0x05, 0x74, 0x65, 0x78, 0x74, 0x00 };
 	auto headers = OBEXHeader::fromByteArray(QByteArray::fromRawData(&truth[0], truth.size()));
 
 	EXPECT_EQ(headers.at(0).headerId(), OBEXHeader::Count);
@@ -263,19 +280,20 @@ TEST_F(BluetoothTest, deviceInfo)
 	 {
 		 QDataStream sockStream(&sock);
 
-		 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
+		 sock.connectToService("NIC-SURFACEBOOK", BluetoothUuid(ServiceClass::OPP));
 		 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
 
-		OBEXConnect c(8192);
-//		c.addOptionalHeader(OBEXHeader::Count, 1);
-		c.addOptionalHeader(OBEXHeader::Name, "hi.txt");
-		c.addOptionalHeader(OBEXHeader::Description, "hi.txt");
-//		c.addOptionalHeader(OBEXHeader::Type, "text");
+		OBEXConnect c(8192);	
+		OBEXConnectResponse r;
 
-		sock.write(c);
-		sock.waitForReadyRead(1000);
-		QByteArray ba = sock.read(7);
-		EXPECT_FALSE(ba.isEmpty());
+//		sock.write(c);
+		sockStream << c;
+
+//		sock.waitForReadyRead(1000);
+		
+		sockStream >> r;
+
+		EXPECT_EQ(r.packetLength(), 7);
 	 });
 
 	 eventLoop.exec();

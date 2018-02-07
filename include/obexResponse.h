@@ -90,8 +90,10 @@ public:
 
 	OBEXResponse() = default;
 	virtual ~OBEXResponse() = default;
-	virtual gsl::string_span data() = 0;
-	virtual quint16 packetLength() = 0;
+	virtual gsl::string_span data() = 0;	// returns a span representing the response-specific data storage
+	virtual quint16 packetLength() = 0;		// packet length value from the response data
+	virtual bool validateAndFixup() = 0;	// called at the end of operator>>. Used to validate code fields, and convert
+											// large types from big to little endian. Returns true on success.
 
 protected:
 
@@ -112,6 +114,7 @@ public:
 	virtual ~OBEXConnectResponse() = default;
 	virtual gsl::string_span data() override;
 	virtual quint16 packetLength() override;	// the return value will generally not be valid until after data has been streamed into the class.
+	virtual bool validateAndFixup() override;
 
 private:
 
@@ -126,7 +129,5 @@ private:
 	} m_data;
 #pragma pack(pop)
 };
-
-
 
 #endif // obexResponse_h__
