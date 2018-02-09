@@ -47,6 +47,7 @@
 //-------------------------
 
 #include <exception>
+#include <QString>
 
 //-------------------------
 //	FORWARD DECLARATIONS
@@ -60,6 +61,7 @@ public:
 
 	BluetoothException(HRESULT result);
 	BluetoothException(const char* what);
+	BluetoothException(QString what);
 	virtual ~BluetoothException() noexcept;
 	virtual char const* what() const override;
 

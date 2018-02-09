@@ -102,6 +102,7 @@ public:
 
 	void addOptionalHeader(const OBEXHeader& header);
 	void addOptionalHeader(OBEXHeader&& header);
+	const OBEXOptionalHeaders& optionalHeaders() const;
 
 	operator QByteArray() const;
 

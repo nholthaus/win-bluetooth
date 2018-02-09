@@ -13,6 +13,17 @@ std::tuple<bool,OBEXOptionalHeaders::Base::iterator> OBEXOptionalHeaders::contai
 }
 
 //--------------------------------------------------------------------------------------------------
+//	contains (public ) []
+//--------------------------------------------------------------------------------------------------
+std::tuple<bool, OBEXOptionalHeaders::Base::const_iterator> OBEXOptionalHeaders::contains(OBEXHeader::HeaderIdentifier id) const
+{
+	if (auto const itr = std::find(cbegin(), cend(), id); itr != cend())
+		return std::make_tuple(true, itr);
+	else
+		return std::make_tuple(false, end());
+}
+
+//--------------------------------------------------------------------------------------------------
 //	operator[] (public ) []
 //--------------------------------------------------------------------------------------------------
 OBEXHeader& OBEXOptionalHeaders::operator[](OBEXHeader::HeaderIdentifier id)

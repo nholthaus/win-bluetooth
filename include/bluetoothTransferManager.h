@@ -32,54 +32,55 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	obexOptionalHeaders.h
-/// @brief	Vector wrapper for the optional headers with a few convenience functions
+/// @file	bluetoothTransferManager.h
+/// @brief	Class to transfer data to another bluetooth device using the Object Push Protocol (OPP)
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef obexOptionalHeaders_h__
-#define obexOptionalHeaders_h__
+#ifndef bluetoothTransferManager_h__
+#define bluetoothTransferManager_h__
 
 //-------------------------
 //	INCLUDES
 //-------------------------
 
-#include <vector> 
-#include <obexHeader.h>
+#include <QObject>
+#include <QScopedPointer>
+#include <QSharedPointer>
 
 //-------------------------
 //	FORWARD DECLARATIONS
 //-------------------------
 
+class BluetoothTransferRequest;
+class BluetoothTransferReply;
+class BluetoothAddress;
+class QIODevice;
 
 //--------------------------------------------------------------------------------------------------
-//	OBEXOptionalHeaders
+//	BluetoothTransferManager
 //--------------------------------------------------------------------------------------------------
 
-class OBEXOptionalHeaders : public std::vector<OBEXHeader>
+class BluetoothTransferManager : public QObject
 {
-	// This looks like it wants to be a map class, but we can't do that
-	// because the headers need to be streamed in the order that they were created, not by
-	// the key order.
+	Q_OBJECT
 
 public:
 
-	using Base = std::vector<OBEXHeader>;
+	BluetoothTransferManager(QObject* parent = nullptr);
+	virtual ~BluetoothTransferManager() = default;
 	
-	// inherit base class constructors
-	using Base::Base;
+	QSharedPointer<BluetoothTransferReply> put(const BluetoothTransferRequest& request, QSharedPointer<QIODevice> data);
 
-	std::tuple<bool, Base::iterator> contains(OBEXHeader::HeaderIdentifier id);
-	std::tuple<bool, Base::const_iterator> contains(OBEXHeader::HeaderIdentifier id) const;
-	OBEXHeader& operator[](OBEXHeader::HeaderIdentifier id);
-	
-	
+signals:
+
+	void finished(QSharedPointer<BluetoothTransferReply> reply);
+
 protected:
 
-	
+
 
 };
 
-
-#endif // obexOptionalHeaders_h__
+#endif // bluetoothTransferManager_h__

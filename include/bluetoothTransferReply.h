@@ -32,21 +32,23 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	obexOptionalHeaders.h
-/// @brief	Vector wrapper for the optional headers with a few convenience functions
+/// @file	bluetoothTransferReply.h
+/// @brief	Class that stores the response for a data transfer request
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef obexOptionalHeaders_h__
-#define obexOptionalHeaders_h__
+#ifndef bluetoothTransferReply_h__
+#define bluetoothTransferReply_h__
 
 //-------------------------
 //	INCLUDES
 //-------------------------
 
-#include <vector> 
-#include <obexHeader.h>
+#include <QObject>
+#include <bluetoothTransferManager.h>
+#include <bluetoothTransferRequest.h>
+#include <atomic>
 
 //-------------------------
 //	FORWARD DECLARATIONS
@@ -54,32 +56,64 @@
 
 
 //--------------------------------------------------------------------------------------------------
-//	OBEXOptionalHeaders
+//	BluetoothTransferReply
 //--------------------------------------------------------------------------------------------------
 
-class OBEXOptionalHeaders : public std::vector<OBEXHeader>
+class BluetoothTransferReply : public QObject
 {
-	// This looks like it wants to be a map class, but we can't do that
-	// because the headers need to be streamed in the order that they were created, not by
-	// the key order.
+	Q_OBJECT
 
 public:
 
-	using Base = std::vector<OBEXHeader>;
-	
-	// inherit base class constructors
-	using Base::Base;
+	enum class TransferError
+	{
+		NoError						= 0,	///< No error.
+		UnknownError				= 1,	///< Unknown error, no better enum available.
+		FileNotFoundError			= 2,	///< Unable to open the file specified.
+		HostNotFoundError			= 3,	///< Unable to connect to the target host.
+		UserCanceledTransferError	= 4,	///< User terminated the transfer.
+		IODeviceNotReadableError	= 5,	///< File was not open before initiating the sending command.
+		ResourceBusyError			= 6,	///< Unable to access the resource..
+		SessionError				= 7,	///< An error occurred during the handling of the session.This enum was introduced by Qt 5.4.
+	};
+	Q_ENUM(TransferError);
 
-	std::tuple<bool, Base::iterator> contains(OBEXHeader::HeaderIdentifier id);
-	std::tuple<bool, Base::const_iterator> contains(OBEXHeader::HeaderIdentifier id) const;
-	OBEXHeader& operator[](OBEXHeader::HeaderIdentifier id);
+	friend BluetoothTransferManager;
+
+public:
+
+	virtual ~BluetoothTransferReply() = default;
+	virtual TransferError error() const;
+	virtual QString errorString() const;
+	virtual bool isFinished() const;
+	virtual bool isRunning() const;
+	BluetoothTransferManager* manager() const;
+	BluetoothTransferRequest request() const;
+
+public slots:
 	
+	void abort();
+
+signals:
+
+	void error(BluetoothTransferReply::TransferError errorType);
+	void finished(QSharedPointer<BluetoothTransferReply> reply);
+	void transferProgress(qint64 bytesTransfered, qint64 bytesTotal);
 	
 protected:
 
-	
+	BluetoothTransferReply(QObject* parent = nullptr);
+	void setManager(BluetoothTransferManager* manager);
+	void setRequest(const BluetoothTransferRequest& request);
 
+private:
+
+	BluetoothTransferManager*	m_manager = nullptr;
+	BluetoothTransferRequest	m_request;
+
+	TransferError				m_error = TransferError::NoError;
+	QString						m_errorString;
+	bool						m_finished = false;
+	std::atomic_bool			m_abort = false;
 };
-
-
-#endif // obexOptionalHeaders_h__
+#endif // bluetoothTransferReply_h__

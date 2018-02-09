@@ -26,6 +26,9 @@ include/bluetoothException.h
 include/bluetoothRadio.h
 #include/bluetoothServer.h
 include/bluetoothSocket.h
+include/bluetoothTransferManager.h
+include/bluetoothTransferReply.h
+include/bluetoothTransferRequest.h
 include/bluetoothUtils.h
 include/bluetoothUuids.h
 include/obexHeader.h
@@ -45,6 +48,9 @@ src/bluetoothException.cpp
 src/bluetoothRadio.cpp
 #src/bluetoothServer.cpp
 src/bluetoothSocket.cpp
+src/bluetoothTransferManager.cpp
+src/bluetoothTransferReply.cpp
+src/bluetoothTransferRequest.cpp
 src/bluetoothUtils.cpp
 src/bluetoothUuids.cpp
 src/obexHeader.cpp

@@ -266,54 +266,44 @@ TEST_F(BluetoothTest, deviceInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
- TEST_F(BluetoothTest, connect)
+ TEST_F(BluetoothTest, fileTransfer)
 {
-	 QEventLoop eventLoop;
+	 BluetoothSocket sock;
+	 QDataStream sockStream(&sock);
 
-	 // run this code as soon as the event loop starts
-	 QTimer::singleShot(0, &eventLoop, [&eventLoop]()
-	 {
-		 BluetoothSocket sock;
-		 QDataStream sockStream(&sock);
+	 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
+	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
 
-		 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
-		 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
+	OBEXConnect c(65535);
+	OBEXConnectResponse r;
 
-		OBEXConnect c(65535);
-		OBEXConnectResponse r;
+	sockStream << c;
+	sockStream >> r;
 
-		sockStream << c;
-		sockStream >> r;
+	EXPECT_EQ(r.packetLength(), 7);
 
-		EXPECT_EQ(r.packetLength(), 7);
+	QFile file(":/res/words.txt");
+	if (!file.open(QIODevice::ReadOnly))
+		ADD_FAILURE() << "couldn't open file";
+	QByteArray ba = file.readAll();
+	EXPECT_FALSE(ba.isEmpty());
 
-		QFile file(":/res/words.txt");
-		if (!file.open(QIODevice::ReadOnly))
-			ADD_FAILURE() << "couldn't open file";
-		QByteArray ba = file.readAll();
-		EXPECT_FALSE(ba.isEmpty());
+	OBEXPutResponse pr;
+	OBEXPut p(r.maxPacketLength());
+	p.addOptionalHeader(OBEXHeader::Name, "words.txt");
+ 	p.addOptionalHeader(OBEXHeader::Length, (quint32)ba.size());
 
-		OBEXPutResponse pr;
-		OBEXPut p(r.maxPacketLength());
-		p.addOptionalHeader(OBEXHeader::Name, "words.txt");
- 		p.addOptionalHeader(OBEXHeader::Length, (quint32)ba.size());
+	while (p.setBody(ba) && pr.continueSending())
+	{
+		sockStream << p;
+    	sockStream >> pr;
+	}
 
-		while (p.setBody(ba) && pr.continueSending())
-		{
-			sockStream << p;
-    		sockStream >> pr;
-		}
+	OBEXDisconnect d;
+	OBEXDisconnectResponse dr;
 
-		OBEXDisconnect d;
-		OBEXDisconnectResponse dr;
-
-		sockStream << d;
-		sockStream >> dr;
-
-		eventLoop.quit();
-	 });
-
-	 eventLoop.exec();
+	sockStream << d;
+	sockStream >> dr;
 }
 
 int main(int argc, char* argv[])

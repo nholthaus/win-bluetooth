@@ -72,6 +72,14 @@ void OBEXRequest::addOptionalHeader(OBEXHeader&& header)
 }
 
 //--------------------------------------------------------------------------------------------------
+//	optionalHeaders (public ) []
+//--------------------------------------------------------------------------------------------------
+const OBEXOptionalHeaders& OBEXRequest::optionalHeaders() const
+{
+	return m_optionalHeaders;
+}
+
+//--------------------------------------------------------------------------------------------------
 //	operator QByteArray (public ) []
 //--------------------------------------------------------------------------------------------------
 OBEXRequest::operator QByteArray() const

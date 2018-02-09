@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-//	WIN-BLUETOOTH
+//	
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -32,54 +32,65 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	obexOptionalHeaders.h
-/// @brief	Vector wrapper for the optional headers with a few convenience functions
+/// @file	bluetoothTransferRequest.h
+/// @brief	Class that stores information about a bluetooth data transfer request
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef obexOptionalHeaders_h__
-#define obexOptionalHeaders_h__
+#ifndef bluetoothTransferRequest_h__
+#define bluetoothTransferRequest_h__
 
 //-------------------------
 //	INCLUDES
 //-------------------------
 
-#include <vector> 
-#include <obexHeader.h>
+#include <BluetoothAddress.h> 
+#include <obexOptionalHeaders.h>
 
 //-------------------------
 //	FORWARD DECLARATIONS
 //-------------------------
 
 
+
 //--------------------------------------------------------------------------------------------------
-//	OBEXOptionalHeaders
+//	BluetoothTransferRequest
 //--------------------------------------------------------------------------------------------------
 
-class OBEXOptionalHeaders : public std::vector<OBEXHeader>
+class BluetoothTransferRequest
 {
-	// This looks like it wants to be a map class, but we can't do that
-	// because the headers need to be streamed in the order that they were created, not by
-	// the key order.
+	Q_GADGET
 
 public:
 
-	using Base = std::vector<OBEXHeader>;
-	
-	// inherit base class constructors
-	using Base::Base;
+	enum class Attribute
+	{
+		DescriptionAttribute	= 0,	///< A textual description of the object being transferred.May be displayed in the UI of the remote device.
+		TimeAttribute			= 1,	///< Time attribute of the object being transferred.
+		TypeAttribute			= 2,	///< MIME type of the object being transferred.
+		LengthAttribute			= 3,	///< Length in bytes of the object being transferred.
+		NameAttribute			= 4,	///< Name of the object being transferred.May be displayed in the UI of the remote device.
+	};
+	Q_ENUM(Attribute);
 
-	std::tuple<bool, Base::iterator> contains(OBEXHeader::HeaderIdentifier id);
-	std::tuple<bool, Base::const_iterator> contains(OBEXHeader::HeaderIdentifier id) const;
-	OBEXHeader& operator[](OBEXHeader::HeaderIdentifier id);
+public:
+
+	BluetoothTransferRequest(const BluetoothAddress& address = BluetoothAddress());
+	virtual ~BluetoothTransferRequest() = default;
 	
+	BluetoothAddress address() const;
+	QVariant attribute(Attribute code, const QVariant& defaultValue = QVariant()) const;
+	const OBEXOptionalHeaders& attributes() const;
+	void setAttribute(Attribute code, const QVariant& value);
+	bool operator!=(const BluetoothTransferRequest& other) const;
+	bool operator==(const BluetoothTransferRequest& other) const;
 	
 protected:
 
-	
+	BluetoothAddress	m_address;
+	OBEXOptionalHeaders	m_attributes;
 
 };
 
-
-#endif // obexOptionalHeaders_h__
+#endif // bluetoothTransferRequest_h__

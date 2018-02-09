@@ -36,6 +36,15 @@ BluetoothException::BluetoothException(const char* what)
 	m_free = true;
 }
 
+//--------------------------------------------------------------------------------------------------
+//	BluetoothException (public ) []
+//--------------------------------------------------------------------------------------------------
+BluetoothException::BluetoothException(QString what)
+{
+	m_what = _strdup(what.toLocal8Bit().constData());
+	m_free = true;
+}
+
 BluetoothException::~BluetoothException() noexcept
 {
 	if (m_free)
