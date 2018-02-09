@@ -29,7 +29,8 @@ include/bluetoothSocket.h
 include/bluetoothUtils.h
 include/bluetoothUuids.h
 include/obexHeader.h
-include/obexOperation.h
+include/obexOptionalHeaders.h
+include/obexRequest.h
 include/obexResponse.h
 include/gsl-lite.h
 include/QStringHash.h
@@ -47,7 +48,8 @@ src/bluetoothSocket.cpp
 src/bluetoothUtils.cpp
 src/bluetoothUuids.cpp
 src/obexHeader.cpp
-src/obexOperation.cpp
+src/obexOptionalHeaders.cpp
+src/obexRequest.cpp
 src/obexResponse.cpp
 )
 
@@ -123,6 +125,12 @@ find_package(Threads REQUIRED)
 #-------------------------------------------------------------------------------
 #	RESOURCES
 #-------------------------------------------------------------------------------
+
+list(APPEND QT_RESOURCES
+resources/resources.qrc
+)
+
+qt5_add_resources(RESOURCES ${QT_RESOURCES})
 
 #list(APPEND RESOURCES
 #resources/resources.rc

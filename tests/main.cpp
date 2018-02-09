@@ -5,7 +5,7 @@
 #include <windows.h>
 #include <bluetoothUtils.h>
 #include <obexHeader.h>
-#include <obexOperation.h>
+#include <obexRequest.h>
 #include <obexResponse.h>
 
 #include <iostream>
@@ -16,6 +16,7 @@
 #include <array>
 #include <QCoreApplication>
 #include <QTimer>
+#include <QFile>
 
 #define STR(s) s.toStdString().c_str()
 
@@ -135,12 +136,13 @@ TEST_F(OBEX, connect)
 
 	OBEXConnect c2(8192);
 	c2.addOptionalHeader(OBEXHeader::Name, "hi.txt");
+	c2.addOptionalHeader(OBEXHeader::Type, "text\0", 5);
 
 	QByteArray ba2;
 	QDataStream out2(&ba2, QIODevice::ReadWrite);
 
 	out2 << c2;
-	std::array<char, 26> truth2{ 0x80, 0x00, 0x19, 0x10, 0x00, 0x20, 0x00, 0x01, 0x00, 0x10, 0xFF, 0xFE, 0x68, 0x00, 0x69, 0x00, 0x2E, 0x00, 0x74, 0x00, 0x78, 0x00, 0x74, 0x00, 0x00, 0x00 };
+	std::array<char, 34> truth2{ 0x80, 0x00, 0x22, 0x10, 0x00, 0x20, 0x00, 0x01, 0x00, 0x13, 0xFE, 0xFF, 0x00, 0x68, 0x00, 0x69, 0x00, 0x2E, 0x00, 0x74, 0x00, 0x78, 0x00, 0x74, 0x00, 0x00, 0x42, 0x00, 0x08, 0x74, 0x65, 0x78, 0x74, 0x00 };
 
 	EXPECT_EQ(ba2.size(), truth2.size());
 
@@ -150,7 +152,7 @@ TEST_F(OBEX, connect)
 
 TEST_F(OBEX, fromRawData)
 {
-	std::array<char, 34> truth{ 0xC0, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x10, 0xFF, 0xFE, 0x68, 0x00, 0x69, 0x00, 0x2E, 0x00, 0x74, 0x00, 0x78, 0x00, 0x74, 0x00, 0x00, 0x00, 0xF4, 0x83, 0x42, 0x00, 0x05, 0x74, 0x65, 0x78, 0x74, 0x00 };
+	std::array<char, 37> truth{ 0xC0, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x13, 0xFE, 0xFF, 0x00, 0x68, 0x00, 0x69, 0x00, 0x2E, 0x00, 0x74, 0x00, 0x78, 0x00, 0x74, 0x00, 0x00, 0xC3, 0x00, 0x00, 0xF4, 0x83, 0x42, 0x00, 0x08, 0x74, 0x65, 0x78, 0x74, 0x00 };
 	auto headers = OBEXHeader::fromByteArray(QByteArray::fromRawData(&truth[0], truth.size()));
 
 	EXPECT_EQ(headers.at(0).headerId(), OBEXHeader::Count);
@@ -160,7 +162,7 @@ TEST_F(OBEX, fromRawData)
 	EXPECT_EQ(headers.at(1).value().toString(), QString("hi.txt"));
 
 	EXPECT_EQ(headers.at(2).headerId(), OBEXHeader::Length);
-	EXPECT_EQ(headers.at(2).value().toString(), 0xF483u);
+	EXPECT_EQ(headers.at(2).value().toUInt(), 0xF483u);
 
 	EXPECT_EQ(headers.at(3).headerId(), OBEXHeader::Type);
 	EXPECT_STREQ(headers.at(3).value().toByteArray(), "text");
@@ -235,8 +237,8 @@ TEST_F(BluetoothTest, radioInfo)
 	QHash<QString, BluetoothAddress> addresses;
 
 	// all the test computers have to be added to this list :(
-	addresses["DAUNTLESS"] = 92407793698;
-	addresses["NIC-PC"] = 71340216032535;
+	addresses["DAUNTLESS"]	= 102200634555791;
+	addresses["NIC-PC"]		= 71340216032535;
 
 	ASSERT_TRUE(addresses.count(Bluetooth::localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
 	ASSERT_EQ(addresses[Bluetooth::localRadio().name()], Bluetooth::localRadio().address());
@@ -268,37 +270,50 @@ TEST_F(BluetoothTest, deviceInfo)
 {
 	 QEventLoop eventLoop;
 
-	 BluetoothSocket sock;
-	 
-	 QObject::connect(&sock, &BluetoothSocket::readyRead, &eventLoop, [&sock, &eventLoop]()
+	 // run this code as soon as the event loop starts
+	 QTimer::singleShot(0, &eventLoop, [&eventLoop]()
 	 {
-		 QByteArray ba = sock.readAll();
-		 EXPECT_FALSE(ba.isEmpty());
-		 eventLoop.exit();
-	 });
-	 QTimer::singleShot(0, &eventLoop, [&sock]()
-	 {
+		 BluetoothSocket sock;
 		 QDataStream sockStream(&sock);
 
-		 sock.connectToService("NIC-SURFACEBOOK", BluetoothUuid(ServiceClass::OPP));
+		 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
 		 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
 
-		OBEXConnect c(8192);	
+		OBEXConnect c(65535);
 		OBEXConnectResponse r;
 
-//		sock.write(c);
 		sockStream << c;
-
-//		sock.waitForReadyRead(1000);
-		
 		sockStream >> r;
 
 		EXPECT_EQ(r.packetLength(), 7);
+
+		QFile file(":/res/words.txt");
+		if (!file.open(QIODevice::ReadOnly))
+			ADD_FAILURE() << "couldn't open file";
+		QByteArray ba = file.readAll();
+		EXPECT_FALSE(ba.isEmpty());
+
+		OBEXPutResponse pr;
+		OBEXPut p(r.maxPacketLength());
+		p.addOptionalHeader(OBEXHeader::Name, "words.txt");
+ 		p.addOptionalHeader(OBEXHeader::Length, (quint32)ba.size());
+
+		while (p.setBody(ba) && pr.continueSending())
+		{
+			sockStream << p;
+    		sockStream >> pr;
+		}
+
+		OBEXDisconnect d;
+		OBEXDisconnectResponse dr;
+
+		sockStream << d;
+		sockStream >> dr;
+
+		eventLoop.quit();
 	 });
 
 	 eventLoop.exec();
-//	 sock.write("Hello, World!");
-//	ASSERT_TRUE(Bluetooth::localRadio().connectTo(Bluetooth::remoteDevice("RELENTLESS")));
 }
 
 int main(int argc, char* argv[])

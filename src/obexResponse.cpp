@@ -37,30 +37,11 @@ QDataStream& operator>>(QDataStream& in, OBEXResponse& response)
 }
 
 //--------------------------------------------------------------------------------------------------
-//	data (public ) []
+//	isValid (public ) []
 //--------------------------------------------------------------------------------------------------
-gsl::string_span OBEXConnectResponse::data()
+bool OBEXResponse::isValid() const
 {
-	return gsl::string_span(reinterpret_cast<char*>(&m_data), sizeof(Data));
-}
-
-//--------------------------------------------------------------------------------------------------
-//	packetLength (public ) []
-//--------------------------------------------------------------------------------------------------
-quint16 OBEXConnectResponse::packetLength()
-{
-	return m_data.length;
-}
-
-//--------------------------------------------------------------------------------------------------
-//	validateAndFixup (public ) []
-//--------------------------------------------------------------------------------------------------
-bool OBEXConnectResponse::validateAndFixup()
-{
-	LE(m_data.maxPacketLength);
-	LE(m_data.length);
-
-	return (m_data.code == Code::Enum::SUCCESS);
+	return m_valid;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -94,8 +75,7 @@ bool OBEXResponse::Code::isFinal() const
 //--------------------------------------------------------------------------------------------------
 bool OBEXResponse::Code::operator!=(const Code& other) const
 {
-	// disregard the MSB
-	return (((quint8)m_code & 0x7F) == ((quint8)other.m_code & 0x7F));
+	return !(*this == other);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -103,13 +83,101 @@ bool OBEXResponse::Code::operator!=(const Code& other) const
 //--------------------------------------------------------------------------------------------------
 bool OBEXResponse::Code::operator==(const Code& other) const
 {
-	return !(*this == other);
+	// disregard the MSB
+	return (((quint8)m_code & 0x7F) == ((quint8)other.m_code & 0x7F));
 }
 
 //--------------------------------------------------------------------------------------------------
-//	isValid (public ) []
+//	data (public ) []
 //--------------------------------------------------------------------------------------------------
-bool OBEXResponse::isValid() const
+gsl::string_span OBEXConnectResponse::data()
 {
-	return m_valid;
+	return gsl::string_span(reinterpret_cast<char*>(&m_data), sizeof(Data));
+}
+
+//--------------------------------------------------------------------------------------------------
+//	packetLength (public ) []
+//--------------------------------------------------------------------------------------------------
+quint16 OBEXConnectResponse::packetLength()
+{
+	return m_data.length;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	validateAndFixup (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXConnectResponse::validateAndFixup()
+{
+	LE(m_data.maxPacketLength);
+	LE(m_data.length);
+
+	return (m_data.code == Code::Enum::SUCCESS);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	maxPacketLength (public ) []
+//--------------------------------------------------------------------------------------------------
+quint16 OBEXConnectResponse::maxPacketLength() const
+{
+	return m_data.maxPacketLength;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	data (public ) []
+//--------------------------------------------------------------------------------------------------
+gsl::string_span OBEXPutResponse::data()
+{
+	return gsl::string_span(reinterpret_cast<char*>(&m_data), sizeof(Data));
+}
+
+//--------------------------------------------------------------------------------------------------
+//	packetLength (public ) []
+//--------------------------------------------------------------------------------------------------
+quint16 OBEXPutResponse::packetLength()
+{
+	return m_data.length;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	validateAndFixup (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXPutResponse::validateAndFixup()
+{
+	LE(m_data.length);
+
+	return (m_data.code == Code::Enum::SUCCESS || m_data.code == Code::Enum::CONTINUE);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	continueSending (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXPutResponse::continueSending() const
+{
+	return m_data.code == OBEXResponse::Code::Enum::CONTINUE;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	data (public ) []
+//--------------------------------------------------------------------------------------------------
+gsl::string_span OBEXDisconnectResponse::data()
+{
+	return gsl::string_span(reinterpret_cast<char*>(&m_data), sizeof(Data));
+}
+
+//--------------------------------------------------------------------------------------------------
+//	packetLength (public ) []
+//--------------------------------------------------------------------------------------------------
+quint16 OBEXDisconnectResponse::packetLength()
+{
+	return m_data.length;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	validateAndFixup (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXDisconnectResponse::validateAndFixup()
+{
+	LE(m_data.length);
+
+	return (m_data.code == OBEXResponse::Code::Enum::SUCCESS || m_data.code == OBEXResponse::Code::Enum::SERVICEUNAVAILABLE);
 }

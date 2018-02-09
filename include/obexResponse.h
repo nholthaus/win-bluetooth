@@ -73,10 +73,10 @@ public:
 
 		enum class Enum : quint8
 		{
-			INVALID			= 0x00,
-			CONTINUE		= 0x10,
-			SUCCESS			= 0x20,
-
+			INVALID					= 0x00,
+			CONTINUE				= 0x90,
+			SUCCESS					= 0xA0,
+			SERVICEUNAVAILABLE		= 0xD3,
 		};
 
 		Code(quint8 value);
@@ -122,6 +122,7 @@ public:
 	virtual gsl::string_span data() override;
 	virtual quint16 packetLength() override;	// the return value will generally not be valid until after data has been streamed into the class.
 	virtual bool validateAndFixup() override;
+	quint16 maxPacketLength() const;
 
 private:
 
@@ -137,4 +138,55 @@ private:
 #pragma pack(pop)
 };
 
+//--------------------------------------------------------------------------------------------------
+//	OBEXDisconnectResponse
+//--------------------------------------------------------------------------------------------------
+
+class OBEXDisconnectResponse : public OBEXResponse
+{
+public:
+
+	OBEXDisconnectResponse() = default;
+	virtual ~OBEXDisconnectResponse() = default;
+	
+	virtual gsl::string_span data() override;
+	virtual quint16 packetLength() override;
+	virtual bool validateAndFixup() override;
+
+#pragma pack(push, 1)
+	struct Data
+	{
+		OBEXResponse::Code::Enum    code = Code::Enum::SUCCESS;
+		quint16						length = 0;
+	} m_data;
+#pragma pack(pop)
+};
+
+//--------------------------------------------------------------------------------------------------
+//	OBEXPutResponse
+//--------------------------------------------------------------------------------------------------
+
+class OBEXPutResponse : public OBEXResponse
+{
+public:
+
+	OBEXPutResponse() = default;
+	virtual ~OBEXPutResponse() = default;
+	
+	virtual gsl::string_span data() override;
+	virtual quint16 packetLength() override;
+	virtual bool validateAndFixup() override;
+	bool continueSending() const;
+
+protected:
+
+#pragma pack(push, 1)
+	struct Data
+	{
+		OBEXResponse::Code::Enum    code = Code::Enum::CONTINUE;	// assume success until proven otherwise
+		quint16						length = 0;
+	} m_data;
+#pragma pack(pop)
+
+};
 #endif // obexResponse_h__

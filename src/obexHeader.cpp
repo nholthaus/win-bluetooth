@@ -4,6 +4,8 @@
 #include <QDataStream>
 #include <QtEndian>
 #include <cassert>
+#include <QDebug>
+#include <stdlib.h>
 
 //--------------------------------------------------------------------------------------------------
 //	OBEXHeader (public ) []
@@ -106,21 +108,25 @@ QVariant OBEXHeader::value() const noexcept
 //--------------------------------------------------------------------------------------------------
 quint16 OBEXHeader::length() const noexcept
 {
+	quint16 length = 0;
+
 	switch (dataType())
 	{
 	case OBEXHeader::UNICODE:
-		return 6 + 2 * m_value.toString().length();	// 1 for id + 2 for length prefix + 1 for null terminator + 2 for the byte order mark + size of string (x2 for unicode) 
+		length = 7 + 2 * m_value.toString().length();	// 1 for id + 2 for length prefix + 2 for null terminator + 2 for the byte order mark + size of string (x2 for unicode) 
+		break;
 	case OBEXHeader::BINARY:
-		return 3 + m_value.toByteArray().length();	// 1 for id + 2 for size prefix + length of byte array
+		length = 3 + m_value.toByteArray().length();	// 1 for id + 2 for size prefix + length of byte array
+		break;
 	case OBEXHeader::BYTE:
-		return 2;									// 1 + 1 for the id
+		length = 2;										// 1 + 1 for the id
+		break;
 	case OBEXHeader::FOUR_BYTES:
-		return 5;									// 4 + 1 for the id
+		length = 5;										// 4 + 1 for the id
+		break;
 	}
-
-	// if you hit this, somehow the data type is corrupt or someone edited it wrongly. Check the standard.
-	assert(false);
-	return 0;
+	
+	return length;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -188,6 +194,30 @@ void OBEXHeader::setValue(const char* value, int length)
 }
 
 //--------------------------------------------------------------------------------------------------
+//	operator!= (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXHeader::operator!=(const OBEXHeader& other) const
+{
+	return !(*this == other);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	operator== (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXHeader::operator==(const OBEXHeader& other) const
+{
+	return (this->m_headerId == other.m_headerId);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	operator< (public ) []
+//--------------------------------------------------------------------------------------------------
+bool OBEXHeader::operator<(const OBEXHeader& other) const
+{
+	return (this->m_headerId < other.m_headerId);
+}
+
+//--------------------------------------------------------------------------------------------------
 //	operator+ (public ) []
 //--------------------------------------------------------------------------------------------------
 unsigned short OBEXHeader::operator+(const OBEXHeader& other)
@@ -234,7 +264,7 @@ std::vector<OBEXHeader> OBEXHeader::fromByteArray(const QByteArray& data)
 			for (i = 0; i < sizeof(int); ++i)
 			{
 				val <<= 8;
-				val |= data[index++];
+				val |= (unsigned char)data[index++];	// the case is necessary to prevent sign extension
 			}
 			optionalHeaders.emplace_back(id, val);
 			break;
@@ -245,6 +275,7 @@ std::vector<OBEXHeader> OBEXHeader::fromByteArray(const QByteArray& data)
 				length <<= 8;
 				length |= data[index++];
 			}
+			length -= 3;	// accounts for the id byte and 2 length bytes
 			optionalHeaders.emplace_back(id, (char*)&data.data()[index], length);
 			index += length;
 			break;
@@ -255,7 +286,8 @@ std::vector<OBEXHeader> OBEXHeader::fromByteArray(const QByteArray& data)
 				length <<= 8;
 				length |= data[index++];
 			}
-			str = QString::fromUtf16(reinterpret_cast<const unsigned short*>(&data.data()[index]), length / 2 - 1);	// divide by two because length is in bytes, unicode chars are 2 bytes. Also strip the null terminator, qstring will add one
+			length -= 3;	// accounts for the id byte and 2 length bytes
+			str = QString::fromUtf16(reinterpret_cast<const unsigned short*>(&data.data()[index]), length  / 2 - 1);	// divide by two because length is in bytes, unicode chars are 2 bytes. Also strip the null terminator, qstring will add one
 			optionalHeaders.emplace_back(id, str);
 			index += length;
 			break;
@@ -278,6 +310,9 @@ QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
 	[[maybe_unused]] QString str;
 	[[maybe_unused]] QByteArray ba;
 	[[maybe_unused]] quint16 length;
+	[[maybe_unused]] QVector<ushort> buff;
+	[[maybe_unused]] int index = 0;
+	[[maybe_unused]] const ushort* utf16;
 
 	out << (unsigned char)header.headerId();	// seems like Qt doesn't handle enum classes in the expected way. 
 												// The underlying type is `unsigned char` so this cast "should" be unnecessary.
@@ -287,20 +322,36 @@ QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
 	{
 	case OBEXHeader::UNICODE:
 
-		// convert the QString to unicode
 		static_assert(sizeof(quint16) == sizeof(QChar), "Size mismatch");
 
 		if (!header.value().canConvert<QString>())
 			throw BluetoothException("Cannot convert OBEX header value to string");	// this should be caught in `setValue`, but just in case...
 
+		// convert to big-endian UTF-16
 		str = header.value().toString();
-		str.prepend(QChar::ByteOrderMark);		// necessary for receiver to interpret endianess
-		length = (str.size() + 1) * 2;			// +1 is for NULL terminator, *2 is because they are 2-byte unicode chars	
-		ba = QByteArray::fromRawData(reinterpret_cast<const char*>(str.constData()), length);
+		buff.resize(str.size() + 2);	// + null term and BOM
+		utf16 = str.utf16();
+
+		// prepend byte order mark
+		buff[0] = 0xFFFE;
+
+		// swap the endianess
+		index = 1;
+		while (utf16[index - 1] != 0x0000)
+		{
+			buff[index] = _byteswap_ushort(utf16[index - 1]);
+			++index;
+		}
+
+		// append the null terminator
+		buff[index] = 0x00;
+
+		length = buff.size() * 2;		// *2 is because they are 2-byte unicode chars	
+		ba = QByteArray::fromRawData(reinterpret_cast<const char*>(buff.constData()), length);
 
 		// don't output the byte array directly or it will prepend it's size and a tag, which doesn't conform to the protocol.
-		out << length;
-		out.writeRawData(ba.constData(), length);
+		out << quint16(length + 3);					// + 3 is the name id + 2 byte length field. annoyingly the +3 does an implicit int conversion, so a cast is required.
+		out.writeRawData(ba.constData(), length);	// write raw data instead of stream or else it will prepend an int32 length to the bytes.
 
 		break;
 
@@ -310,7 +361,7 @@ QDataStream& operator<<(QDataStream &out, const OBEXHeader &header)
 
 		ba = header.value().toByteArray();
 		length = (quint16)ba.length();
-		out << length;
+		out << (quint16)(length + 3);	// account for the id and length bytes too!
 		out.writeRawData(ba.constData(), length);
 
 		break;

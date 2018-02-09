@@ -140,6 +140,9 @@ public:
 	void setValue(char value);
 	void setValue(unsigned int value);
 	
+	bool operator==(const OBEXHeader& other) const;
+	bool operator!=(const OBEXHeader& other) const;
+	bool operator<(const OBEXHeader& other) const;
 	unsigned short operator+(const OBEXHeader& other);
 	operator QByteArray() const;
 

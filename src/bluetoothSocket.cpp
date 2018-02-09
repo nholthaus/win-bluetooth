@@ -50,9 +50,9 @@ public:
 		btAddress.addressFamily = AF_BTH;
 
 		// set encryption
-//		ULONG bEncrypt = TRUE;
-//		if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_ENCRYPT, (const char*)&bEncrypt, sizeof(ULONG)))
-//			setError(BluetoothSocket::SocketError::HostNotFoundError);
+		ULONG bEncrypt = TRUE;
+		if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_ENCRYPT, (const char*)&bEncrypt, sizeof(ULONG)))
+			setError(BluetoothSocket::SocketError::HostNotFoundError);
 	}
 
 	~BluetoothSocketPrivate()
