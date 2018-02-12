@@ -4,6 +4,7 @@
 #include <win-bluetooth>
 #include <windows.h>
 #include <bluetoothUtils.h>
+#include <bluetoothException.h>
 #include <obexHeader.h>
 #include <obexRequest.h>
 #include <obexResponse.h>
@@ -266,44 +267,93 @@ TEST_F(BluetoothTest, deviceInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
- TEST_F(BluetoothTest, fileTransfer)
+//  TEST_F(BluetoothTest, fileTransfer)
+// {
+// 	 BluetoothSocket sock;
+// 	 QDataStream sockStream(&sock);
+// 
+// 	 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
+// 	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
+// 
+// 	OBEXConnect c(65535);
+// 	OBEXConnectResponse r;
+// 
+// 	sockStream << c;
+// 	sockStream >> r;
+// 
+// 	EXPECT_EQ(r.packetLength(), 7);
+// 
+// 	QFile file(":/res/words.txt");
+// 	if (!file.open(QIODevice::ReadOnly))
+// 		ADD_FAILURE() << "couldn't open file";
+// 	QByteArray ba = file.readAll();
+// 	EXPECT_FALSE(ba.isEmpty());
+// 
+// 	OBEXPutResponse pr;
+// 	OBEXPut p(r.maxPacketLength());
+// 	p.addOptionalHeader(OBEXHeader::Name, "words.txt");
+//  	p.addOptionalHeader(OBEXHeader::Length, (quint32)ba.size());
+// 
+// 	while (p.setBody(ba) && pr.continueSending())
+// 	{
+// 		sockStream << p;
+//     	sockStream >> pr;
+// 	}
+// 
+// 	OBEXDisconnect d;
+// 	OBEXDisconnectResponse dr;
+// 
+// 	sockStream << d;
+// 	sockStream >> dr;
+// }
+
+TEST_F(BluetoothTest,transferManager)
 {
-	 BluetoothSocket sock;
-	 QDataStream sockStream(&sock);
+	QEventLoop eventLoop;
+	int transfered = 0;
 
-	 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
-	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
+	QSharedPointer<QFile> file(new QFile(":/res/words.txt"));
 
-	OBEXConnect c(65535);
-	OBEXConnectResponse r;
+	// Create a transfer manager
+	BluetoothTransferManager *transferManager = new BluetoothTransferManager;
 
-	sockStream << c;
-	sockStream >> r;
+	// Create the transfer request and file to be sent
+	BluetoothAddress remoteAddress("RELENTLESS");
+	BluetoothTransferRequest request(remoteAddress);
+	request.setAttribute(BluetoothTransferRequest::Attribute::NameAttribute, "words.txt");
 
-	EXPECT_EQ(r.packetLength(), 7);
-
-	QFile file(":/res/words.txt");
-	if (!file.open(QIODevice::ReadOnly))
-		ADD_FAILURE() << "couldn't open file";
-	QByteArray ba = file.readAll();
-	EXPECT_FALSE(ba.isEmpty());
-
-	OBEXPutResponse pr;
-	OBEXPut p(r.maxPacketLength());
-	p.addOptionalHeader(OBEXHeader::Name, "words.txt");
- 	p.addOptionalHeader(OBEXHeader::Length, (quint32)ba.size());
-
-	while (p.setBody(ba) && pr.continueSending())
+	// Ask the transfer manager to send it
+	QTime duration;
+	duration.start();
+	auto reply = transferManager->put(request, file);
+	if (reply->error() == BluetoothTransferReply::NoError) 
 	{
-		sockStream << p;
-    	sockStream >> pr;
+		QObject::connect(reply.data(), &BluetoothTransferReply::transferProgress, &eventLoop,
+			[&transfered](qint64 sent, qint64 total)
+		{
+			transfered = sent * 100 / total;
+		}, Qt::QueuedConnection);
+		QObject::connect(reply.data(), &BluetoothTransferReply::finished, &eventLoop, [&eventLoop]()
+		{
+			eventLoop.exit();
+		}, Qt::QueuedConnection);
+	}
+	else 
+	{
+		eventLoop.exit();
+		qWarning() << "Cannot push testfile.txt:" << reply->errorString();
 	}
 
-	OBEXDisconnect d;
-	OBEXDisconnectResponse dr;
+	eventLoop.exec();
+	auto ms = duration.elapsed();
 
-	sockStream << d;
-	sockStream >> dr;
+	double sizeBytes = file->size();
+	double sizeMegaBits = sizeBytes * 8.0 / 1'000'000.0;
+	double seconds = ms / 1'000.0;
+	double throughput = sizeMegaBits / seconds;
+	qDebug() << "Throughput:" << throughput << "Mbps";
+	EXPECT_EQ(reply->error(), BluetoothTransferReply::NoError);
+	EXPECT_EQ(transfered, 100);
 }
 
 int main(int argc, char* argv[])

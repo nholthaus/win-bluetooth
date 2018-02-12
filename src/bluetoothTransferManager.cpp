@@ -23,7 +23,7 @@ BluetoothTransferManager::BluetoothTransferManager(QObject* parent /*= nullptr*/
 //--------------------------------------------------------------------------------------------------
 QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const BluetoothTransferRequest& request, QSharedPointer<QIODevice> data)
 {
-	QSharedPointer<BluetoothTransferReply> reply;
+	QSharedPointer<BluetoothTransferReply> reply(new BluetoothTransferReply);
 	reply->setManager(this);
 	reply->setRequest(request);
 
@@ -33,19 +33,34 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 		BluetoothSocket sock;
 		QDataStream sockStream(&sock);
 
-		sock.connectToService(request.address(), BluetoothUuid(ServiceClass::OPP));
-		if (sock.state() != BluetoothSocket::SocketState::ConnectedState)
+		// done lambda
+		auto done = [=]()
 		{
-			reply->m_errorString = QString("Failed to connect to remote device at address %1. %2")
-				.arg(QString(request.address()))
-				.arg(sock.errorString());
-			reply->m_error = BluetoothTransferReply::TransferError::HostNotFoundError;
 			reply->m_finished = true;
 			reply->finished(reply);
 			emit finished(reply);
+		};
+
+		// error lambda
+		auto setError = [=](QString errorString, BluetoothTransferReply::TransferError error)
+		{
+			reply->m_errorString = errorString;
+			reply->m_error = error;
+			reply->error(reply->m_error);
+			done();
+		};
+
+		// connect socket
+		sock.connectToService(request.address(), BluetoothUuid(ServiceClass::OPP));
+		if (sock.state() != BluetoothSocket::SocketState::ConnectedState)
+		{
+			setError(QString("Failed to connect to remote device at address %1. %2")
+				.arg(QString(request.address()))
+				.arg(sock.errorString()),
+				BluetoothTransferReply::TransferError::HostNotFoundError);
 		}
 
-		OBEXConnect connectRequest(65535);
+		OBEXConnect connectRequest;
 		OBEXConnectResponse connectResponse;
 
 		// send the connection request
@@ -60,58 +75,42 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 		}
 		catch (BluetoothException& e)
 		{
-			reply->m_errorString = e.what();
-			reply->m_error = BluetoothTransferReply::TransferError::UnknownError;
-			reply->m_finished = true;
-			reply->finished(reply);
-			emit finished(reply);
+			setError(e.what(), BluetoothTransferReply::TransferError::UnknownError);
 		}
 		catch (...)
 		{
-			reply->m_errorString = sock.errorString();
-			reply->m_error = BluetoothTransferReply::TransferError::UnknownError;
-			reply->m_finished = true;
-			reply->finished(reply);
-			emit finished(reply);
+			setError(sock.errorString(), BluetoothTransferReply::TransferError::UnknownError);
 		}
 
 		// read the data
 		bool open = data->open(QIODevice::ReadOnly);
 		QByteArray ba = data->readAll();
 		if (ba.isEmpty() || !open)
-		{
-			reply->m_errorString = "IO Device could not be opened for reading or was empty";
-			reply->m_error = BluetoothTransferReply::TransferError::IODeviceNotReadableError;
-			reply->m_finished = true;
-			reply->finished(reply);
-			emit finished(reply);
-		}
+			setError("IO Device could not be opened for reading or was empty", BluetoothTransferReply::TransferError::IODeviceNotReadableError);
 
 		// write the data to the socket
 		try
 		{
 			OBEXPutResponse putResponse;
 			OBEXPut putRequest(connectResponse.maxPacketLength());
+			quint32 length = (quint32)ba.size();
 			for (const auto& header : request.attributes())
 			{
 				putRequest.addOptionalHeader(header);
 			}
 			if (auto[hasAttr, itr] = putRequest.optionalHeaders().contains(OBEXHeader::Length); !hasAttr)
-				putRequest.addOptionalHeader(OBEXHeader::Length, (quint32)ba.size());
+				putRequest.addOptionalHeader(OBEXHeader::Length, length);
 
 			while (putRequest.setBody(ba) && putResponse.continueSending() && !reply->m_abort)
 			{
 				sockStream << putRequest;
 				sockStream >> putResponse;
+				reply->transferProgress(length - ba.size(), length);
 			}
 		}
 		catch (...)
 		{
-			reply->m_errorString = sock.errorString();
-			reply->m_error = BluetoothTransferReply::TransferError::SessionError;
-			reply->m_finished = true;
-			reply->finished(reply);
-			emit finished(reply);
+			setError(sock.errorString(), BluetoothTransferReply::TransferError::SessionError);
 		}
 
 		// disconnect the session
@@ -125,18 +124,16 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 		}
 		catch (...)
 		{
-			// if this fails who cares
+			// if this fails who cares we're destroying the socket anyway
 		}
 		
 		if (reply->m_abort)
 		{
-			// .......
+			setError("User canceled transfer", BluetoothTransferReply::TransferError::UserCanceledTransferError);
 		}
 
 		// done!
-		reply->m_finished = true;
-		reply->finished(reply);
-		emit finished(reply);
+		done();
 	});
 
 	return reply;

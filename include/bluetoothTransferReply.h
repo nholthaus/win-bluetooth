@@ -65,7 +65,7 @@ class BluetoothTransferReply : public QObject
 
 public:
 
-	enum class TransferError
+	enum TransferError
 	{
 		NoError						= 0,	///< No error.
 		UnknownError				= 1,	///< Unknown error, no better enum available.
