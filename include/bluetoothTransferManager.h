@@ -77,9 +77,9 @@ signals:
 
 	void finished(QSharedPointer<BluetoothTransferReply> reply);
 
-protected:
+private:
 
-
+	static constexpr int READ_TIMEOUT_MS = 10000;
 
 };
 

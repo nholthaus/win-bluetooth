@@ -116,6 +116,7 @@ public:
 	quint16 peerPort() const;
 	Protocol socketType() const;
 	SocketState state() const;
+	virtual bool waitForReadyRead(int msecs) override;
 	
 	virtual void close() override;
 	virtual bool isSequential() const override;
@@ -128,6 +129,7 @@ signals:
 	void disconnected();
 	void error(SocketError error);
 	void stateChanged(SocketState state);
+	void readyRead();
 
 protected:
 
@@ -137,6 +139,7 @@ protected:
 private:
 
 	void connectToService(const BluetoothAddress& address, OpenMode openMode = ReadWrite);
+	int select(int timeout_ms, bool selectForRead = true) const;
 
 private:
 

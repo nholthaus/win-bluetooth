@@ -8,9 +8,7 @@
                 "path": [],
                 "limitSymbolsToIncludedHeaders": true,
                 "databaseFilename": ""
-            },
-            "intelliSenseMode": "msvc-x64"
+            }
         }
-    ],
-    "version": 3
+    ]
 }

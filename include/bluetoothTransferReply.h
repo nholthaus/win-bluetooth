@@ -82,7 +82,6 @@ public:
 
 public:
 
-	virtual ~BluetoothTransferReply() = default;
 	virtual TransferError error() const;
 	virtual QString errorString() const;
 	virtual bool isFinished() const;

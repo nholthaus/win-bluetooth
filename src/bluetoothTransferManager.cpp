@@ -50,6 +50,10 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 			done();
 		};
 
+		QObject::connect(&sock, &BluetoothSocket::readyRead, []()
+		{
+			qDebug() << "GOT A READY READ OMG!!!!!!";
+		});
 		// connect socket
 		sock.connectToService(request.address(), BluetoothUuid(ServiceClass::OPP));
 		if (sock.state() != BluetoothSocket::SocketState::ConnectedState)
@@ -58,6 +62,7 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 				.arg(QString(request.address()))
 				.arg(sock.errorString()),
 				BluetoothTransferReply::TransferError::HostNotFoundError);
+			return reply;
 		}
 
 		OBEXConnect connectRequest;
@@ -67,6 +72,8 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 		try
 		{
 			sockStream << connectRequest;
+			if (!sock.waitForReadyRead(READ_TIMEOUT_MS))
+				throw BluetoothException("Connection timed out.");
 			sockStream >> connectResponse;
 			if (!connectResponse.isValid())
 				throw BluetoothException(QString("Invalid connection response from remote device at address %1. %2")
@@ -104,6 +111,8 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 			while (putRequest.setBody(ba) && putResponse.continueSending() && !reply->m_abort)
 			{
 				sockStream << putRequest;
+				if (!sock.waitForReadyRead(READ_TIMEOUT_MS))
+					throw BluetoothException("Bluetooth response timed out.");
 				sockStream >> putResponse;
 				reply->transferProgress(length - ba.size(), length);
 			}
@@ -120,6 +129,8 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 			OBEXDisconnectResponse disconnectResponse;
 
 			sockStream << disconnectRequest;
+			if (!sock.waitForReadyRead(READ_TIMEOUT_MS))
+				throw BluetoothException("Disconnection timed out.");
 			sockStream >> disconnectResponse;
 		}
 		catch (...)

@@ -91,7 +91,6 @@ public:
 	bool hasPendingConnections() const;
 	bool isListening() const;
 	bool listen(const BluetoothAddress& address = BluetoothAddress(), quint16 port = 0);
-	BluetoothServiceInfo listen(const BluetoothUuid& uuid, const QString& serviceName = QString());
 	int maxPendingConnections() const;
 	std::unique_ptr<BluetoothSocket> nextPendingConnection();
 	SecurityFlags securityFlags() const;

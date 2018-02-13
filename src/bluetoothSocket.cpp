@@ -52,7 +52,19 @@ public:
 		// set encryption
 		ULONG bEncrypt = TRUE;
 		if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_ENCRYPT, (const char*)&bEncrypt, sizeof(ULONG)))
-			setError(BluetoothSocket::SocketError::HostNotFoundError);
+			setError(BluetoothSocket::SocketError::OperationError, "Failed to set socket encryption.");
+
+		// set the buffer size equal to the max size of a bluetooth packet
+		ULONG buffsize = 65535;
+		if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_SNDBUF, (const char*)&bEncrypt, sizeof(ULONG)))
+			setError(BluetoothSocket::SocketError::UnknownSocketError, "Failed to set socket send buffer size.");
+		
+		// set non-blocking
+		unsigned long buf = 1;
+		unsigned long outBuf;
+		DWORD sizeWritten = 0;
+		if (SOCKET_ERROR == ::WSAIoctl(socket, FIONBIO, &buf, sizeof(unsigned long), &outBuf, sizeof(unsigned long), &sizeWritten, nullptr, nullptr))
+			setError(BluetoothSocket::SocketError::UnknownSocketError);
 	}
 
 	~BluetoothSocketPrivate()
@@ -85,12 +97,18 @@ public:
 			emit q->disconnected();
 	}
 
-	void setError(BluetoothSocket::SocketError error)
+	void setError(BluetoothSocket::SocketError error, QString errorString = QString())
 	{
 		Q_Q(BluetoothSocket);
 
 		this->error = error;
-		errorString = BluetoothException(ERR).what();	// don't throw, just get the message
+		errorString = errorString;
+		if (errorString.end() != QChar('.'))
+		{
+			errorString += '.';
+		}
+		errorString += ' ';
+		errorString += BluetoothException(ERR).what();	// don't throw, just get the message
 		emit q->error(this->error);
 	}
 
@@ -100,6 +118,7 @@ public:
 
 		this->state = state;
 		emit q->stateChanged(this->state);
+
 	}
 
 	BluetoothSocket*				q_ptr;
@@ -121,7 +140,7 @@ BluetoothSocket::BluetoothSocket(QObject* parent)
 	: QIODevice(parent)
 	, d_ptr(new BluetoothSocketPrivate(this))
 {
-
+	connect((QIODevice*)this, &QIODevice::readyRead, this, &QBluetoothSocket::readyRead);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -182,17 +201,164 @@ void BluetoothSocket::connectToService(const BluetoothAddress& address, OpenMode
 
 	d->btAddress.btAddr = address;
 
-	if (SOCKET_ERROR == ::connect(d->socket, (struct sockaddr *) &d->btAddress, sizeof(SOCKADDR_BTH)))
+	int count = 0;
+	int count2 = 0;
+	forever
 	{
-		d->setState(SocketState::UnconnectedState);
-		d->setError(SocketError::HostNotFoundError);
-		return;
+		++count;
+		int connectResult = ::WSAConnect(d->socket, (struct sockaddr *) &d->btAddress, sizeof(SOCKADDR_BTH), nullptr,nullptr,nullptr,nullptr);
+		if (connectResult == SOCKET_ERROR) 
+		{
+			++count2;
+			int err = WSAGetLastError();
+
+			switch (err) 
+			{
+			case WSANOTINITIALISED:
+				//###
+				break;
+			case WSAEISCONN:
+				d->setState(SocketState::ConnectedState);
+				break;
+			case WSAEWOULDBLOCK: {
+				// If WSAConnect returns WSAEWOULDBLOCK on the second
+				// connection attempt, we have to check SO_ERROR's
+				// value to detect ECONNREFUSED. If we don't get
+				// ECONNREFUSED, we'll have to treat it as an
+				// unfinished operation.
+				int value = 0;
+				int valueSize = sizeof(value);
+				bool tryAgain = false;
+				bool errorDetected = false;
+				int tries = 0;
+				do 
+				{
+					if (::getsockopt(d->socket, SOL_SOCKET, SO_ERROR, (char *)&value, &valueSize) == 0) {
+						if (value != NOERROR) {
+							// MSDN says getsockopt with SO_ERROR clears the error, but it's not actually cleared
+							// and this can affect all subsequent WSAConnect attempts, so clear it now.
+							const int val = NO_ERROR;
+							::setsockopt(d->socket, SOL_SOCKET, SO_ERROR, reinterpret_cast<const char*>(&val), sizeof val);
+						}
+
+						if (value == WSAECONNREFUSED) {
+							d->setError(SocketError::NetworkError, "Connection refused.");
+							d->setState(SocketState::UnconnectedState);
+							errorDetected = true;
+							break;
+						}
+						if (value == WSAETIMEDOUT) {
+							d->setError(SocketError::NetworkError, "Connection timed out.");
+							d->setState(SocketState::UnconnectedState);
+							errorDetected = true;
+							break;
+						}
+						if (value == WSAEHOSTUNREACH) {
+							d->setError(SocketError::NetworkError, "Destination host unreachable");
+							d->setState(SocketState::UnconnectedState);
+							errorDetected = true;
+							break;
+						}
+						if (value == WSAEADDRNOTAVAIL) {
+							d->setError(SocketError::NetworkError,  "Address not available");
+							d->setState(SocketState::UnconnectedState);
+							errorDetected = true;
+							break;
+						}
+						if (value == NOERROR) {
+							// When we get WSAEWOULDBLOCK the outcome was not known, so a
+							// NOERROR might indicate that the result of the operation
+							// is still unknown. We try again to increase the chance that we did
+							// get the correct result.
+							tryAgain = !tryAgain;
+						}
+					}
+					tries++;
+				} while (tryAgain && (tries < 2));
+
+				if (errorDetected)
+					break;
+				Q_FALLTHROUGH();
+			}
+			case WSAEINPROGRESS:
+				continue;
+			case WSAEADDRINUSE:
+				d->setError(SocketError::NetworkError,  "Address in use.");
+				break;
+			case WSAECONNREFUSED:
+				d->setError(SocketError::NetworkError,  "Connection refused.");
+				d->setState(SocketState::UnconnectedState);
+				break;
+			case WSAETIMEDOUT:
+				d->setError(SocketError::NetworkError,  "Connection timed out.");
+				break;
+			case WSAEACCES:
+				d->setError(SocketError::NetworkError,  "Socket access error.");
+				d->setState(SocketState::UnconnectedState);
+				break;
+			case WSAEHOSTUNREACH:
+				d->setError(SocketError::NetworkError,  "Destination host unreachable.");
+				d->setState(SocketState::UnconnectedState);
+				break;
+			case WSAENETUNREACH:
+				d->setError(SocketError::NetworkError,  "Network unreachable");
+				d->setState(SocketState::UnconnectedState);
+				break;
+			case WSAEINVAL:
+			case WSAEALREADY:
+				continue;
+				break;
+			default:
+				break;
+			}
+		}
+		break;
 	}
 
 	d->setState(SocketState::ConnectedState);
 	emit connected();
 
 	QIODevice::setOpenMode(openMode);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	select (private ) []
+//--------------------------------------------------------------------------------------------------
+int BluetoothSocket::select(int timeout_ms, bool selectForRead /*= true*/) const
+{
+	const Q_D(BluetoothSocket);
+
+	fd_set fds;
+
+	int ret = 0;
+
+	memset(&fds, 0, sizeof(fd_set));
+	fds.fd_count = 1;
+	fds.fd_array[0] = (SOCKET)d->socket;
+
+	struct timeval tv;
+	tv.tv_sec = timeout_ms / 1000;
+	tv.tv_usec = (timeout_ms % 1000) * 1000;
+
+	if (selectForRead) {
+		ret = ::select(0, &fds, nullptr, nullptr, timeout_ms < 0 ? nullptr : &tv);
+	}
+	else {
+		// select for write
+
+		// Windows needs this to report errors when connecting a socket ...
+		fd_set fdexception;
+		FD_ZERO(&fdexception);
+		FD_SET((SOCKET)d->socket, &fdexception);
+
+		ret = ::select(0, nullptr, &fds, &fdexception, timeout_ms < 0 ? nullptr : &tv);
+
+		// ... but if it is actually set, pretend it did not happen
+		if (ret > 0 && FD_ISSET((SOCKET)d->socket, &fdexception))
+			ret--;
+	}
+
+	return ret;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -217,7 +383,15 @@ bool BluetoothSocket::isSequential() const
 //--------------------------------------------------------------------------------------------------
 qint64 BluetoothSocket::bytesAvailable() const
 {
-	throw std::logic_error("The method or operation is not implemented.");
+	const Q_D(BluetoothSocket);
+
+	unsigned long  nbytes = 0;
+	unsigned long dummy = 0;
+	DWORD sizeWritten = 0;
+	if (SOCKET_ERROR == ::WSAIoctl(d->socket, FIONREAD, &dummy, sizeof(dummy), &nbytes, sizeof(nbytes), &sizeWritten, nullptr, nullptr))
+		return -1;
+
+	return nbytes;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -326,33 +500,50 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 {
 	Q_D(BluetoothSocket);
 
-	if(auto bytesAvailable = ::recv(d->socket, data, maxlen, MSG_PEEK); bytesAvailable)
+	qint64 ret = -1;
+	WSABUF buf;
+	buf.buf = data;
+	buf.len = maxlen;
+	DWORD flags = 0;
+	DWORD bytesRead = 0;
+	if (SOCKET_ERROR == ::WSARecv(d->socket, &buf, 1, &bytesRead, &flags, nullptr, nullptr))
 	{
-		if (auto ret = ::recv(d->socket, data, maxlen, 0); ret == SOCKET_ERROR)
-		{
-			switch (WSAGetLastError())
-			{
-			case WSAENETDOWN:
-				d->setError(SocketError::NetworkError);
-			case WSAETIMEDOUT:
-				d->setError(SocketError::HostNotFoundError);
-			default:
-				d->setError(SocketError::UnknownSocketError);
-			}
+		int err = WSAGetLastError();
 
-			return 0;
-		}
-		else if (!ret)
+		switch (err) 
 		{
-			return 0;
+		case WSAEWOULDBLOCK:
+			ret = -2;
+			break;
+		case WSAEBADF:
+			d->setError(SocketError::NetworkError, "The socket handle is invalid.");
+			break;
+		case WSAEINVAL:
+			d->setError(SocketError::NetworkError, "An invalid argument was supplied.");
+			break;
+		case WSAECONNRESET:
+			d->setError(SocketError::NetworkError, "Connection was closed by the remote host.");
+			break;
+		case WSAECONNABORTED:
+			d->setError(SocketError::NetworkError, "User aborted connection.");
+			break;
+			ret = 0;
+			break;
+		default:
+			break;
 		}
-		else
-			return ret;
 	}
-	else
+	else 
 	{
-		return 0;
+		if (WSAGetLastError() == WSAEWOULDBLOCK)
+			ret = 0;
+		else
+		{
+			ret = qint64(bytesRead);
+		}
 	}
+
+	return ret;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -361,22 +552,81 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 qint64 BluetoothSocket::writeData(const char *data, qint64 len)
 {
 	Q_D(BluetoothSocket);
-	
-	if (auto ret = ::send(d->socket, data, len, 0); ret == SOCKET_ERROR)
+
+	// inspired by qnativesocketengine_win.cpp
+	qint64 ret = 0;
+	qint64 bytesToSend = len;
+
+	for (;;) 
 	{
-		switch (WSAGetLastError())
+		WSABUF buf;
+		buf.buf = (char*)data + ret;
+		buf.len = bytesToSend;
+		DWORD flags = 0;
+		DWORD bytesWritten = 0;
+
+		int socketRet = ::WSASend(d->socket, &buf, 1, &bytesWritten, flags, nullptr, nullptr);
+
+		ret += qint64(bytesWritten);
+
+		int err;
+		if (socketRet != SOCKET_ERROR) {
+			if (ret == len)
+				break;
+			else
+				continue;
+		}
+		else if ((err = WSAGetLastError()) == WSAEWOULDBLOCK) {
+			break;
+		}
+		else if (err == WSAENOBUFS) 
 		{
-		case WSAENETDOWN:
-			d->setError(SocketError::NetworkError);
-		case WSAETIMEDOUT:
-			d->setError(SocketError::HostNotFoundError);
-		default:
-			d->setError(SocketError::UnknownSocketError);
+			qDebug() << "This thing that wasn't supposed to happen happens";
+			// this function used to not send more than 49152 per call to WSASendTo
+			// to avoid getting a WSAENOBUFS. However this is a performance regression
+			// and we think it only appears with old windows versions. We now handle the
+			// WSAENOBUFS and hope it never appears anyway.
+			// just go on, the next loop run we will try a smaller number
+		}
+		else 
+		{
+			auto err = WSAGetLastError();
+			switch (err) {
+			case WSAECONNRESET:
+			case WSAECONNABORTED:
+				ret = -1;
+				d->setError(SocketError::NetworkError);
+				close();
+				break;
+			default:
+				throw BluetoothException(err);
+			}
+			break;
 		}
 
-		return 0;
+		// for next send:
+		bytesToSend = len - ret;
 	}
-	else
-		return ret;
+
+	return ret;
 }
 
+
+//--------------------------------------------------------------------------------------------------
+//	waitForReadyRead (public ) []
+//--------------------------------------------------------------------------------------------------
+bool BluetoothSocket::waitForReadyRead(int msecs)
+{
+	Q_D(BluetoothSocket);
+
+	int ret = select(msecs);
+	if (ret == 0)
+	{
+		d->setError(SocketError::NetworkError, "Socket operation timed out.");
+		return false;
+	}
+	else if (d->state == SocketState::ConnectingState)
+		connectToService(BluetoothAddress(d->btAddress.btAddr));
+
+	return ret > 0;
+}

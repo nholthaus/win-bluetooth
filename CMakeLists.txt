@@ -24,7 +24,7 @@ include/bluetoothDevice.h
 include/bluetoothEnums.h
 include/bluetoothException.h
 include/bluetoothRadio.h
-#include/bluetoothServer.h
+include/bluetoothServer.h
 include/bluetoothSocket.h
 include/bluetoothTransferManager.h
 include/bluetoothTransferReply.h
@@ -46,7 +46,7 @@ src/bluetoothAddress.cpp
 src/bluetoothDevice.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
-#src/bluetoothServer.cpp
+src/bluetoothServer.cpp
 src/bluetoothSocket.cpp
 src/bluetoothTransferManager.cpp
 src/bluetoothTransferReply.cpp
@@ -171,7 +171,7 @@ configure_file(src/appinfo.h.in appinfo.h @ONLY NEWLINE_STYLE UNIX)
 #	SOURCE GROUPS
 #-------------------------------------------------------------------------------
 
-source_group(generated REGULAR_EXPRESSION ".*_automoc.cpp")
+source_group(generated REGULAR_EXPRESSION "(.*_automoc.cpp)|(mocs?.*)")
 source_group(resources REGULAR_EXPRESSION ".*[.][q]?rc")
 source_group(source REGULAR_EXPRESSION ".*[.]cpp")
 source_group(headers REGULAR_EXPRESSION ".*[.]h")
