@@ -93,6 +93,8 @@ public:
 	};
 	Q_ENUM(SocketError);
 
+
+
 private:
 
 	Q_DISABLE_COPY(BluetoothSocket)
@@ -117,6 +119,7 @@ public:
 	Protocol socketType() const;
 	SocketState state() const;
 	virtual bool waitForReadyRead(int msecs) override;
+	virtual bool canReadLine() const override;
 	
 	virtual void close() override;
 	virtual bool isSequential() const override;
@@ -129,7 +132,6 @@ signals:
 	void disconnected();
 	void error(SocketError error);
 	void stateChanged(SocketState state);
-	void readyRead();
 
 protected:
 

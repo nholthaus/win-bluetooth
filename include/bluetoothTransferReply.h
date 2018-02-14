@@ -96,7 +96,7 @@ public slots:
 signals:
 
 	void error(BluetoothTransferReply::TransferError errorType);
-	void finished(QSharedPointer<BluetoothTransferReply> reply);
+	void finished(BluetoothTransferReply* reply);
 	void transferProgress(qint64 bytesTransfered, qint64 bytesTotal);
 	
 protected:

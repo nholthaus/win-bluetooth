@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/res">
         <file>words.txt</file>
+        <file>words-short.txt</file>
     </qresource>
 </RCC>

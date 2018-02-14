@@ -11,8 +11,12 @@
 #include <bluetoothapis.h>
 #include <ws2bth.h>
 #include <cassert>
+#include <thread>
+#include <array>
 
 #include <QtBluetooth/QBluetoothSocket>
+#include <QMutex>
+#include <QWaitCondition>
 
 //------------------------------
 //	MACROS
@@ -65,11 +69,67 @@ public:
 		DWORD sizeWritten = 0;
 		if (SOCKET_ERROR == ::WSAIoctl(socket, FIONBIO, &buf, sizeof(unsigned long), &outBuf, sizeof(unsigned long), &sizeWritten, nullptr, nullptr))
 			setError(BluetoothSocket::SocketError::UnknownSocketError);
+
+		// initialize the event handles
+		readEvent = WSACreateEvent();
+		joinEvent = WSACreateEvent();
+		readCompleteEvent = WSACreateEvent();
+
+		// start the ready-read thread
+		readyReadThread = std::thread([this]()
+		{
+			Q_Q(BluetoothSocket);
+
+			forever
+			{
+				HANDLE readOrJoin[2];
+				readOrJoin[0] = readEvent;
+				readOrJoin[1] = joinEvent;
+
+				// wait for data to be ready to read.
+				WSAEventSelect(socket, readEvent, FD_READ);
+				auto ret = WSAWaitForMultipleEvents(2, readOrJoin, FALSE, WSA_INFINITE, TRUE);
+				if (ret - WSA_WAIT_EVENT_0 == 0)
+				{
+					q->readyRead();
+					readyReadCondition.wakeAll();
+				}
+				if (ret - WSA_WAIT_EVENT_0 == 1)
+				{
+					break;
+				}
+
+				// wait for the data to be read
+				ret = WSAWaitForMultipleEvents(1, &readCompleteEvent, TRUE, WSA_INFINITE, FALSE);
+
+				// check for join event
+				ret = WSAWaitForMultipleEvents(1, &joinEvent, TRUE, 0, FALSE);
+				if ((ret != WSA_WAIT_FAILED) && (ret != WSA_WAIT_TIMEOUT))
+				{
+					break;
+				}
+
+				WSAResetEvent(readEvent);
+				WSAResetEvent(joinEvent);
+				WSAResetEvent(readCompleteEvent);
+			}
+		});
 	}
 
 	~BluetoothSocketPrivate()
 	{
-		closeSocket();	
+		// set the events that could block the readyRead loop
+		WSASetEvent(joinEvent);
+		WSASetEvent(readCompleteEvent);
+
+		closeSocket();
+		readyReadThread.join();
+
+		WSACloseEvent(readEvent);
+		WSACloseEvent(joinEvent);
+		WSACloseEvent(readCompleteEvent);
+
+		WSACleanup();
 	}
 
 	void closeSocket()
@@ -120,6 +180,10 @@ public:
 		emit q->stateChanged(this->state);
 
 	}
+	void setReadComplete()
+	{
+		WSASetEvent(readCompleteEvent);
+	}
 
 	BluetoothSocket*				q_ptr;
 	SOCKET							socket = INVALID_SOCKET;
@@ -129,9 +193,25 @@ public:
 	BluetoothSocket::SocketError	error = BluetoothSocket::SocketError::NoSocketError;
 	Protocol						protocol;
 	QString							errorString;
+
+	std::thread						readyReadThread;
+	HANDLE							readEvent;
+	HANDLE							joinEvent;
+	HANDLE							readCompleteEvent;
+
+	QMutex							readReadMutex;
+	QWaitCondition					readyReadCondition;
 };
 
 bool BluetoothSocketPrivate::winsockInitialized = false;
+
+//--------------------------------------------------------------------------------------------------
+//	canReadLine (public ) []
+//--------------------------------------------------------------------------------------------------
+bool BluetoothSocket::canReadLine() const
+{
+	return false;
+}
 
 //--------------------------------------------------------------------------------------------------
 //	BluetoothSocket (public ) []
@@ -506,7 +586,13 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 	buf.len = maxlen;
 	DWORD flags = 0;
 	DWORD bytesRead = 0;
-	if (SOCKET_ERROR == ::WSARecv(d->socket, &buf, 1, &bytesRead, &flags, nullptr, nullptr))
+	OVERLAPPED overlapped;
+
+	auto completion = [d](DWORD, DWORD, LPWSAOVERLAPPED, DWORD)
+	{
+		d->setReadComplete();
+	};
+	if (SOCKET_ERROR == ::WSARecv(d->socket, &buf, 1, &bytesRead, &flags, &overlapped, (LPWSAOVERLAPPED_COMPLETION_ROUTINE)&completion))
 	{
 		int err = WSAGetLastError();
 
@@ -543,6 +629,7 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 		}
 	}
 
+	d->setReadComplete();
 	return ret;
 }
 
@@ -566,7 +653,8 @@ qint64 BluetoothSocket::writeData(const char *data, qint64 len)
 		DWORD bytesWritten = 0;
 
 		int socketRet = ::WSASend(d->socket, &buf, 1, &bytesWritten, flags, nullptr, nullptr);
-
+		
+		this->bytesWritten(bytesWritten);
 		ret += qint64(bytesWritten);
 
 		int err;
@@ -619,14 +707,19 @@ bool BluetoothSocket::waitForReadyRead(int msecs)
 {
 	Q_D(BluetoothSocket);
 
-	int ret = select(msecs);
-	if (ret == 0)
-	{
-		d->setError(SocketError::NetworkError, "Socket operation timed out.");
-		return false;
-	}
-	else if (d->state == SocketState::ConnectingState)
-		connectToService(BluetoothAddress(d->btAddress.btAddr));
+// 	int ret = select(msecs);
+// 	if (ret == 0)
+// 	{
+// 		d->setError(SocketError::NetworkError, "Socket operation timed out.");
+// 		return false;
+// 	}
+// 	else if (d->state == SocketState::ConnectingState)
+// 		connectToService(BluetoothAddress(d->btAddress.btAddr));
+// 
+// 	return ret > 0;
 
-	return ret > 0;
+	d->readReadMutex.lock();
+	bool val = d->readyReadCondition.wait(&d->readReadMutex, msecs);
+	d->readReadMutex.unlock();
+	return val;
 }

@@ -71,11 +71,11 @@ public:
 	BluetoothTransferManager(QObject* parent = nullptr);
 	virtual ~BluetoothTransferManager() = default;
 	
-	QSharedPointer<BluetoothTransferReply> put(const BluetoothTransferRequest& request, QSharedPointer<QIODevice> data);
+	BluetoothTransferReply* put(const BluetoothTransferRequest& request, QSharedPointer<QIODevice> data);
 
 signals:
 
-	void finished(QSharedPointer<BluetoothTransferReply> reply);
+	void finished(BluetoothTransferReply* reply);
 
 private:
 

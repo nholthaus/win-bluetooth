@@ -21,9 +21,9 @@ BluetoothTransferManager::BluetoothTransferManager(QObject* parent /*= nullptr*/
 //--------------------------------------------------------------------------------------------------
 //	put (public ) []
 //--------------------------------------------------------------------------------------------------
-QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const BluetoothTransferRequest& request, QSharedPointer<QIODevice> data)
+BluetoothTransferReply* BluetoothTransferManager::put(const BluetoothTransferRequest& request, QSharedPointer<QIODevice> data)
 {
-	QSharedPointer<BluetoothTransferReply> reply(new BluetoothTransferReply);
+	auto* reply  = new BluetoothTransferReply;
 	reply->setManager(this);
 	reply->setRequest(request);
 
@@ -50,10 +50,6 @@ QSharedPointer<BluetoothTransferReply> BluetoothTransferManager::put(const Bluet
 			done();
 		};
 
-		QObject::connect(&sock, &BluetoothSocket::readyRead, []()
-		{
-			qDebug() << "GOT A READY READ OMG!!!!!!";
-		});
 		// connect socket
 		sock.connectToService(request.address(), BluetoothUuid(ServiceClass::OPP));
 		if (sock.state() != BluetoothSocket::SocketState::ConnectedState)

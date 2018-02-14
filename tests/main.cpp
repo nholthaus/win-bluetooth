@@ -267,48 +267,10 @@ TEST_F(BluetoothTest, deviceInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
-//  TEST_F(BluetoothTest, fileTransfer)
-// {
-// 	 BluetoothSocket sock;
-// 	 QDataStream sockStream(&sock);
-// 
-// 	 sock.connectToService("RELENTLESS", BluetoothUuid(ServiceClass::OPP));
-// 	 ASSERT_EQ(sock.state(), BluetoothSocket::SocketState::ConnectedState) << STR(sock.errorString());
-// 
-// 	OBEXConnect c(65535);
-// 	OBEXConnectResponse r;
-// 
-// 	sockStream << c;
-// 	sockStream >> r;
-// 
-// 	EXPECT_EQ(r.packetLength(), 7);
-// 
-// 	QFile file(":/res/words.txt");
-// 	if (!file.open(QIODevice::ReadOnly))
-// 		ADD_FAILURE() << "couldn't open file";
-// 	QByteArray ba = file.readAll();
-// 	EXPECT_FALSE(ba.isEmpty());
-// 
-// 	OBEXPutResponse pr;
-// 	OBEXPut p(r.maxPacketLength());
-// 	p.addOptionalHeader(OBEXHeader::Name, "words.txt");
-//  	p.addOptionalHeader(OBEXHeader::Length, (quint32)ba.size());
-// 
-// 	while (p.setBody(ba) && pr.continueSending())
-// 	{
-// 		sockStream << p;
-//     	sockStream >> pr;
-// 	}
-// 
-// 	OBEXDisconnect d;
-// 	OBEXDisconnectResponse dr;
-// 
-// 	sockStream << d;
-// 	sockStream >> dr;
-// }
-
-TEST_F(BluetoothTest,transferManager)
+TEST_F(BluetoothTest, transferManager)
 {
+	// for this test to succeed, the receiving PC needs to be in a state where it can accept
+	// incoming bluetooth files.
 	QEventLoop eventLoop;
 	int transfered = 0;
 
@@ -326,15 +288,19 @@ TEST_F(BluetoothTest,transferManager)
 	QTime duration;
 	duration.start();
 	auto reply = transferManager->put(request, file);
+
+	int transmittedPackets = 0;
+	int readyReadsReceived = 0;
 	if (reply->error() == BluetoothTransferReply::NoError) 
 	{
-		QObject::connect(reply.data(), &BluetoothTransferReply::transferProgress, &eventLoop,
+		QObject::connect(reply, &BluetoothTransferReply::transferProgress, &eventLoop,
 			[&transfered](qint64 sent, qint64 total)
 		{
 			transfered = sent * 100 / total;
 		}, Qt::QueuedConnection);
-		QObject::connect(reply.data(), &BluetoothTransferReply::finished, &eventLoop, [&eventLoop]()
+		QObject::connect(reply, &BluetoothTransferReply::finished, &eventLoop, [&eventLoop, &reply]()
 		{
+			reply->deleteLater();
 			eventLoop.exit();
 		}, Qt::QueuedConnection);
 	}
