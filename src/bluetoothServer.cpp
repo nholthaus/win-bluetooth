@@ -1,4 +1,5 @@
 // #include <bluetoothServer.h>
+// #include <bluetooth.h>
 // 
 // //--------------------------------------------------------------------------------------------------
 // //	BluetoothServerPrivate
@@ -15,7 +16,11 @@
 // 	
 // protected:
 // 
-// 	BluetoothServer * q_ptr;
+// 	BluetoothServer* q_ptr;
+// 	BluetoothSocket* listeningSocket = nullptr;
+// 
+// 	unsigned int	port = 0;
+// 	Bluetoo
 // 
 // };
 // 
@@ -104,7 +109,7 @@
 // //--------------------------------------------------------------------------------------------------
 // BluetoothAddress BluetoothServer::serverAddress() const
 // {
-// 
+// 	return Bluetooth::localRadio().address();
 // }
 // 
 // //--------------------------------------------------------------------------------------------------
@@ -112,7 +117,7 @@
 // //--------------------------------------------------------------------------------------------------
 // quint16 BluetoothServer::serverPort() const
 // {
-// 
+// 	return Bluetooth::localRadio().
 // }
 // 
 // //--------------------------------------------------------------------------------------------------

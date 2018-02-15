@@ -199,8 +199,11 @@ public:
 	HANDLE							joinEvent;
 	HANDLE							readCompleteEvent;
 
-	QMutex							readReadMutex;
+	QMutex							readyReadMutex;
 	QWaitCondition					readyReadCondition;
+
+	QMutex							bytesWrittenMutex;
+	QWaitCondition					bytesWrittenCondition;
 };
 
 bool BluetoothSocketPrivate::winsockInitialized = false;
@@ -696,9 +699,10 @@ qint64 BluetoothSocket::writeData(const char *data, qint64 len)
 		bytesToSend = len - ret;
 	}
 
+	d->bytesWrittenCondition.wakeAll();
+
 	return ret;
 }
-
 
 //--------------------------------------------------------------------------------------------------
 //	waitForReadyRead (public ) []
@@ -707,19 +711,21 @@ bool BluetoothSocket::waitForReadyRead(int msecs)
 {
 	Q_D(BluetoothSocket);
 
-// 	int ret = select(msecs);
-// 	if (ret == 0)
-// 	{
-// 		d->setError(SocketError::NetworkError, "Socket operation timed out.");
-// 		return false;
-// 	}
-// 	else if (d->state == SocketState::ConnectingState)
-// 		connectToService(BluetoothAddress(d->btAddress.btAddr));
-// 
-// 	return ret > 0;
+	d->readyReadMutex.lock();
+	bool val = d->readyReadCondition.wait(&d->readyReadMutex, msecs);
+	d->readyReadMutex.unlock();
+	return val;
+}
 
-	d->readReadMutex.lock();
-	bool val = d->readyReadCondition.wait(&d->readReadMutex, msecs);
-	d->readReadMutex.unlock();
+//--------------------------------------------------------------------------------------------------
+//	waitForBytesWritten (public ) []
+//--------------------------------------------------------------------------------------------------
+bool BluetoothSocket::waitForBytesWritten(int msecs)
+{
+	Q_D(BluetoothSocket);
+
+	d->bytesWrittenMutex.lock();
+	bool val = d->bytesWrittenCondition.wait(&d->bytesWrittenMutex, msecs);
+	d->bytesWrittenMutex.unlock();
 	return val;
 }
