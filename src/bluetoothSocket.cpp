@@ -163,7 +163,7 @@ public:
 
 		this->error = error;
 		errorString = errorString;
-		if (errorString.end() != QChar('.'))
+		if (*errorString.end() != QChar('.'))
 		{
 			errorString += '.';
 		}

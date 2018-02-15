@@ -1,11 +1,13 @@
 #include <Bluetooth.h>
 #include <bluetoothException.h>
 #include <bluetoothRadio.h>
+#include <bluetoothUuids.h>
 
 #include <utility>
 #include <cassert>
 #include <algorithm>
 #include <QHostInfo>
+#include <array>
 
 #include <winsock2.h>
 #include <ws2bth.h>
@@ -215,4 +217,57 @@ QString Bluetooth::name(const BluetoothAddress& address)
 	}
 
 	return "INVALID";
+}
+
+//--------------------------------------------------------------------------------------------------
+//	lookupServices (public ) [static ]
+//--------------------------------------------------------------------------------------------------
+bool Bluetooth::lookupServices(const BluetoothDevice& device)
+{
+	// Get the windows style address
+	SOCKADDR_BTH btAddr;
+	btAddr.addressFamily = AF_BTH;
+	btAddr.btAddr = device.address();
+
+	// Create the query set
+	DWORD flags = 0;
+	WSAQUERYSET query;
+	HANDLE lookupHandle;
+	ZeroMemory(&query, sizeof(query));
+
+	// get the WSA address string required for the query
+	std::array<char, 256> contextStr;
+	DWORD contextsize = contextStr.size();
+	if (SOCKET_ERROR == WSAAddressToString((SOCKADDR*)&btAddr, sizeof(SOCKADDR_BTH), nullptr, &contextStr[0], &contextsize))
+		throw BluetoothException(ERR);
+
+	// service class UUID
+	auto uuid = (GUID)BluetoothUuid(Protocol::RFCOMM);
+
+	// check this link out for further info: https://msdn.microsoft.com/en-us/library/windows/desktop/aa362914(v=vs.85).aspx
+	query.dwSize = sizeof(WSAQUERYSET);
+	query.dwNameSpace = NS_BTH;
+	query.lpszContext = (LPSTR)&contextStr;
+	query.lpServiceClassId = &uuid;
+
+	// set the service flags
+	flags |= LUP_FLUSHCACHE;	// ignore system cache and do a new query
+	flags |= LUP_RETURN_ALL;
+	flags |= LUP_RETURN_COMMENT;
+
+	// start the service lookup
+	if (SOCKET_ERROR == WSALookupServiceBegin(&query, flags, &lookupHandle))
+		throw BluetoothException(ERR);
+
+	// find all the services
+	static const DWORD BUFFSIZE = 2048;
+	char resultsBuff[BUFFSIZE];
+	LPWSAQUERYSET results = reinterpret_cast<WSAQUERYSET*>(&resultsBuff[0]);
+	int ret = SOCKET_ERROR;
+
+	do 
+	{
+		ret = WSALookupServiceNext(lookupHandle, flags, (LPDWORD)&BUFFSIZE, results);
+	} while (ret != WSA_E_NO_MORE && ret != WSAENOMORE);
+	return false;
 }

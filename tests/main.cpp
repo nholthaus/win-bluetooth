@@ -267,6 +267,14 @@ TEST_F(BluetoothTest, deviceInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
+TEST_F(BluetoothTest, serviceInfo)
+{
+	for (const auto& [name, device] : Bluetooth::remoteDevices())
+	{
+		Bluetooth::lookupServices(device);
+	}
+}
+
 TEST_F(BluetoothTest, transferManager)
 {
 	// for this test to succeed, the receiving PC needs to be in a state where it can accept

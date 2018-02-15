@@ -47,6 +47,7 @@
 
 #include <QList>
 #include <QVariant> 
+#include <QObject>
 
 //-------------------------
 //	FORWARD DECLARATIONS
@@ -60,6 +61,8 @@ class BluetoothServiceInfoPrivate;
 
 class BluetoothServiceInfo
 {
+	Q_GADGET
+
 public:
 
 	friend BluetoothServiceInfoPrivate;
