@@ -73,6 +73,28 @@ private:
 };
 
 //--------------------------------------------------------------------------------------------------
+//	CALLBACK FUNCTIONS
+//--------------------------------------------------------------------------------------------------
+
+BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize, LPVOID pvParam)
+{
+	SDP_ELEMENT_DATA element;
+	if (BluetoothSdpGetElementData(pValueStream, cbStreamSize, &element) != ERROR_SUCCESS)
+		return FALSE;
+
+	if(element.type == SDP_TYPE_SEQUENCE)
+		if (BluetoothSdpGetAttributeValue(pValueStream, cbStreamSize, uAttribId, &element) != ERROR_SUCCESS)
+			return FALSE;
+
+	auto device = reinterpret_cast<BluetoothDevice*>(pvParam);
+
+	// TODO: do something with the SDP attributes
+
+
+	return TRUE;
+}
+
+//--------------------------------------------------------------------------------------------------
 //	METHODS
 //--------------------------------------------------------------------------------------------------
 bool Bluetooth::enumerateLocalRadios(bool refreshList /*= false*/)
@@ -229,6 +251,8 @@ bool Bluetooth::lookupServices(const BluetoothDevice& device)
 	btAddr.addressFamily = AF_BTH;
 	btAddr.btAddr = device.address();
 
+	qDebug() << device.name() << device.addressString();
+
 	// Create the query set
 	DWORD flags = 0;
 	WSAQUERYSET query;
@@ -236,38 +260,83 @@ bool Bluetooth::lookupServices(const BluetoothDevice& device)
 	ZeroMemory(&query, sizeof(query));
 
 	// get the WSA address string required for the query
-	std::array<char, 256> contextStr;
-	DWORD contextsize = contextStr.size();
-	if (SOCKET_ERROR == WSAAddressToString((SOCKADDR*)&btAddr, sizeof(SOCKADDR_BTH), nullptr, &contextStr[0], &contextsize))
+	const DWORD STRLEN = 256;
+	char contextStr[256];
+	ZeroMemory(&contextStr, STRLEN);
+	LPSTR pContextStr = &contextStr[0];
+
+	if (SOCKET_ERROR == WSAAddressToString((SOCKADDR*)&btAddr, sizeof(SOCKADDR_BTH), nullptr, pContextStr, (LPDWORD)&STRLEN))
 		throw BluetoothException(ERR);
 
 	// service class UUID
-	auto uuid = (GUID)BluetoothUuid(Protocol::RFCOMM);
+	GUID uuid = BluetoothUuid(Protocol::RFCOMM);
 
 	// check this link out for further info: https://msdn.microsoft.com/en-us/library/windows/desktop/aa362914(v=vs.85).aspx
 	query.dwSize = sizeof(WSAQUERYSET);
 	query.dwNameSpace = NS_BTH;
-	query.lpszContext = (LPSTR)&contextStr;
+	query.dwNumberOfCsAddrs = 0;
+	query.lpszContext = (LPSTR)&contextStr[0];
 	query.lpServiceClassId = &uuid;
 
 	// set the service flags
 	flags |= LUP_FLUSHCACHE;	// ignore system cache and do a new query
+// 	flags |= LUP_RETURN_NAME;
+// 	flags |= LUP_RETURN_TYPE;
+//  	flags |= LUP_RETURN_ADDR;
+// 	flags |= LUP_RETURN_BLOB;
+// 	flags |= LUP_RES_SERVICE;
+// 	flags |= LUP_RETURN_COMMENT;
 	flags |= LUP_RETURN_ALL;
-	flags |= LUP_RETURN_COMMENT;
 
 	// start the service lookup
 	if (SOCKET_ERROR == WSALookupServiceBegin(&query, flags, &lookupHandle))
-		throw BluetoothException(ERR);
-
+	{
+		switch (WSAGetLastError())
+		{
+		case WSASERVICE_NOT_FOUND:
+			// usually means the device couldn't be connected to or doesn't advertise any services
+			return false;
+		default:
+			throw BluetoothException(ERR);
+		}
+	}		
+	
 	// find all the services
-	static const DWORD BUFFSIZE = 2048;
+	const DWORD BUFFSIZE = 2048;
 	char resultsBuff[BUFFSIZE];
+	ZeroMemory(&resultsBuff, BUFFSIZE);
+	
 	LPWSAQUERYSET results = reinterpret_cast<WSAQUERYSET*>(&resultsBuff[0]);
+	results->dwSize = sizeof(WSAQUERYSET);
 	int ret = SOCKET_ERROR;
-
+	
 	do 
 	{
 		ret = WSALookupServiceNext(lookupHandle, flags, (LPDWORD)&BUFFSIZE, results);
-	} while (ret != WSA_E_NO_MORE && ret != WSAENOMORE);
-	return false;
+		auto CSAddr = reinterpret_cast<CSADDR_INFO*>(results->lpcsaBuffer);
+		auto blob = reinterpret_cast<BLOB*>(results->lpBlob);
+		if (blob)
+		{
+			if (!BluetoothSdpEnumAttributes(blob->pBlobData, blob->cbSize, callback, (LPVOID)&device))
+				throw BluetoothException(ERR);
+		}
+	} while (ret != SOCKET_ERROR);
+	switch (WSAGetLastError())
+	{
+	case WSA_E_NO_MORE:
+		 // expected way for the loop to end
+		break;
+	default:
+		throw BluetoothException(ERR);
+	}
+
+	WSALookupServiceEnd(lookupHandle);
+
+
+
+
+
+
+
+	return true;
 }

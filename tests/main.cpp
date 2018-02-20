@@ -178,13 +178,26 @@ TEST_F(BluetoothTest, BluetoothAddress)
 
 TEST_F(BluetoothTest, BluetoothUuid)
 {
-	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()),	"{00030000-0000-1000-8000-00805F9B34FB}");
+	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()),	"{00000003-0000-1000-8000-00805F9B34FB}");
 	ASSERT_STREQ(STR(BluetoothUuid().toString()),					"{00000000-0000-0000-0000-000000000000}");
 }
 
 TEST_F(BluetoothTest, name)
 {
 	ASSERT_STREQ(STR(Bluetooth::name(Bluetooth::localRadio().address())), STR(QHostInfo::localHostName().toUpper()));
+}
+
+TEST_F(BluetoothTest, BluetoothDeviceInfo)
+{
+	BluetoothAddress addr("00:15:83:ED:9E:4C");
+	QString name = "Test Device";
+	BluetoothDeviceInfo devInfo(addr, "Test Device", 0x22010C);
+
+	EXPECT_EQ(devInfo.address(), addr);
+	EXPECT_STREQ(STR(devInfo.name()), STR(name));
+	EXPECT_EQ(devInfo.majorDeviceClass(), BluetoothDeviceInfo::ComputerDevice);
+	EXPECT_EQ(devInfo.minorDeviceClass(), BluetoothDeviceInfo::LaptopComputer);
+	EXPECT_EQ(devInfo.serviceClasses(), BluetoothDeviceInfo::AudioService | BluetoothDeviceInfo::NetworkingService);
 }
 
 TEST_F(BluetoothTest, exceptionFromHresult)
