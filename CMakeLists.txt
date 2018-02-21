@@ -26,6 +26,7 @@ include/bluetoothEnums.h
 include/bluetoothException.h
 include/bluetoothRadio.h
 include/bluetoothServer.h
+include/bluetoothServiceDiscoveryAgent.h
 include/bluetoothServiceInfo.h
 include/bluetoothSocket.h
 include/bluetoothTransferManager.h
@@ -50,6 +51,7 @@ src/bluetoothDeviceInfo.cpp
 src/bluetoothException.cpp
 src/bluetoothRadio.cpp
 src/bluetoothServer.cpp
+src/bluetoothServiceDiscoveryAgent.cpp
 src/bluetoothServiceInfo.cpp
 src/bluetoothSocket.cpp
 src/bluetoothTransferManager.cpp

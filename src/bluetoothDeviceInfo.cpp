@@ -1,7 +1,7 @@
 #include <bluetoothDeviceInfo.h>
 #include <bluetoothAddress.h>
 #include <bluetoothUuids.h>
-
+#include <bluetoothDevice.h>
 
 //--------------------------------------------------------------------------------------------------
 //	BluetoothDeviceInfoPrivate
@@ -50,6 +50,7 @@ BluetoothDeviceInfo::BluetoothDeviceInfo(const BluetoothAddress& address, const 
 	d->address = address;
 	d->name = name;
 	d->classOfDevice = classOfDevice;
+	d->isValid = true;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -62,6 +63,7 @@ BluetoothDeviceInfo::BluetoothDeviceInfo(const BluetoothUuid& uuid, const QStrin
 	d->uuid = uuid;
 	d->name = name;
 	d->classOfDevice = classOfDevice;
+	d->isValid = true;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -73,6 +75,20 @@ BluetoothDeviceInfo::BluetoothDeviceInfo(const BluetoothDeviceInfo& other)
 	Q_D(BluetoothDeviceInfo);
 	*d_ptr = *other.d_ptr;
 	d_ptr->q_ptr = this;
+	d->isValid = true;
+}
+
+//--------------------------------------------------------------------------------------------------
+//	BluetoothDeviceInfo (public ) []
+//--------------------------------------------------------------------------------------------------
+BluetoothDeviceInfo::BluetoothDeviceInfo(const BluetoothDevice& other)
+	: BluetoothDeviceInfo()
+{
+	Q_D(BluetoothDeviceInfo);
+	d->address = other.address();
+	d->name = other.name();
+	d->classOfDevice = other.classOfDevice();
+	d->isValid = true;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -83,6 +99,7 @@ BluetoothDeviceInfo& BluetoothDeviceInfo::operator=(const BluetoothDeviceInfo& o
 	Q_D(BluetoothDeviceInfo);
 	*d_ptr = *other.d_ptr;
 	d_ptr->q_ptr = this;
+	d->isValid = true;
 	return *this;
 }
 

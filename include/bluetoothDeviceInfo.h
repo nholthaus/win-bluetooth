@@ -52,6 +52,7 @@
 //-------------------------
 
 class BluetoothAddress;
+class BluetoothDevice;
 class BluetoothUuid;
 class BluetoothDeviceInfoPrivate;
 
@@ -231,6 +232,7 @@ public:
 public:
 
 	BluetoothDeviceInfo();
+	BluetoothDeviceInfo(const BluetoothDevice& other);
 	BluetoothDeviceInfo(const BluetoothAddress& address, const QString& name, quint32 classOfDevice);
 	BluetoothDeviceInfo(const BluetoothUuid& uuid, const QString& name, quint32 classOfDevice);
 	BluetoothDeviceInfo(const BluetoothDeviceInfo& other);
