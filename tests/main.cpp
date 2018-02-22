@@ -282,10 +282,7 @@ TEST_F(BluetoothTest, deviceInfo)
 
 TEST_F(BluetoothTest, serviceInfo)
 {
-	for (const auto& [name, device] : Bluetooth::remoteDevices())
-	{
-		Bluetooth::lookupServices(device);
-	}
+	ADD_FAILURE() << "this test isn't implemented yet";
 }
 
 TEST_F(BluetoothTest, transferManager)

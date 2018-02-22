@@ -306,7 +306,10 @@ QString BluetoothServiceDiscoveryAgent::errorString() const
 bool BluetoothServiceDiscoveryAgent::isActive() const
 {
 	const Q_D(BluetoothServiceDiscoveryAgent);
-	return d->serviceDiscoveryFuture.isRunning();
+	bool isActive = false;
+	for (const auto& future : d->serviceDiscoveryFutures.futures())
+		isActive |= future.isRunning();
+	return isActive;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -348,7 +351,7 @@ void BluetoothServiceDiscoveryAgent::setUuidFilter(const QList<BluetoothUuid> &u
 void BluetoothServiceDiscoveryAgent::setUuidFilter(const BluetoothUuid &uuid)
 {
 	Q_D(BluetoothServiceDiscoveryAgent);
-	d->uuidFilter = QList<BluetoothUuid>(uuid);
+	d->uuidFilter = QList<BluetoothUuid>{ uuid };
 }
 
 //--------------------------------------------------------------------------------------------------

@@ -62,6 +62,7 @@ class BluetoothServiceInfoPrivate;
 class BluetoothServiceInfo
 {
 	Q_GADGET
+	Q_DECLARE_PRIVATE(BluetoothServiceInfo)
 
 public:
 
@@ -119,16 +120,16 @@ public:
 
 public:
 
-	BluetoothServiceInfo() = default;
-	virtual ~BluetoothServiceInfo() = default;
+	BluetoothServiceInfo();
+	virtual ~BluetoothServiceInfo();
 	
 	QVariant attribute(quint16 attributeId) const;
 	QList<quint16> attributes() const;
 	bool contains(quint16 attributeId) const;
 
-protected:
+private:
 
-	QScopedPointer<BluetoothServiceInfoPrivate>	d_ptr;
+	BluetoothServiceInfoPrivate*	d_ptr;
 
 };
 
