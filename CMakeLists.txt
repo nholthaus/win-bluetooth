@@ -107,6 +107,7 @@ PROJECT(${PROJECT_NAME})
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
+set(CMAKE_AUTORCC ON)
 set(QT_USE_QTMAIN TRUE)
 
 # Setup the cmake prefix path so Qt can be found. Use the QTDIR variable if defined
@@ -138,11 +139,11 @@ find_package(Threads REQUIRED)
 #	RESOURCES
 #-------------------------------------------------------------------------------
 
-list(APPEND QT_RESOURCES
+list(APPEND RESOURCES
 resources/resources.qrc
 )
 
-qt5_add_resources(RESOURCES ${QT_RESOURCES})
+#qt5_add_resources(RESOURCES ${QT_RESOURCES})
 
 #list(APPEND RESOURCES
 #resources/resources.rc
