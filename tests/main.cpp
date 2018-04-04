@@ -282,7 +282,15 @@ TEST_F(BluetoothTest, deviceInfo)
 
 TEST_F(BluetoothTest, serviceInfo)
 {
-	ADD_FAILURE() << "this test isn't implemented yet";
+	QEventLoop eventLoop;
+
+	BluetoothServiceDiscoveryAgent agent("RELENTLESS");
+	QObject::connect(&agent, &BluetoothServiceDiscoveryAgent::finished, &eventLoop, &QEventLoop::quit);
+	
+	agent.start(BluetoothServiceDiscoveryAgent::FullDiscovery);
+
+	eventLoop.exec();
+
 }
 
 TEST_F(BluetoothTest, transferManager)

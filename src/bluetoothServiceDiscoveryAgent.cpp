@@ -32,7 +32,6 @@ public:
 
 	Q_DECLARE_PUBLIC(BluetoothServiceDiscoveryAgent);
 	BluetoothServiceDiscoveryAgentPrivate(BluetoothServiceDiscoveryAgent* parent) : q_ptr(parent) { }
-	virtual ~BluetoothServiceDiscoveryAgentPrivate() = default;
 	
 	void setError(BluetoothServiceDiscoveryAgent::Error error, const QString& errorString)
 	{
@@ -67,22 +66,78 @@ BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize
 	if (BluetoothSdpGetElementData(pValueStream, cbStreamSize, &element) != ERROR_SUCCESS)
 		return FALSE;
 
-	auto device = reinterpret_cast<BluetoothServiceInfo*>(pvParam);
+	auto serviceInfo = reinterpret_cast<BluetoothServiceInfo*>(pvParam);
 
 	switch ((SDP_TYPE)element.type)
 	{
 		// TODO: do something with the SDP attributes
 	case SDP_TYPE_UINT:
+		switch ((SDP_SPECIFICTYPE)element.specificType)
+		{
+		case SDP_ST_UINT128:
+			Q_ASSERT(false);
+			break;	// support this someday I guess
+		case SDP_ST_UINT64:
+			serviceInfo->setAttribute(uAttribId, (quint64)element.data.uint64);
+			break;
+		case SDP_ST_UINT32:
+			serviceInfo->setAttribute(uAttribId, (quint32)element.data.uint32);
+			break;
+		case SDP_ST_UINT16:
+			serviceInfo->setAttribute(uAttribId, (quint16)element.data.uint16);
+			break;
+		case SDP_ST_UINT8:
+			serviceInfo->setAttribute(uAttribId, (quint8)element.data.uint8);
+			break;
+		default:
+			Q_ASSERT(false); // this shouldn't ever happen
+			break;
+		}
+		break;
 	case SDP_TYPE_INT:
+		switch ((SDP_SPECIFICTYPE)element.specificType)
+		{
+		case SDP_ST_INT128:
+			Q_ASSERT(false);
+			break;	// support this someday I guess
+		case SDP_ST_INT64:
+			serviceInfo->setAttribute(uAttribId, (qint64)element.data.int64);
+			break;
+		case SDP_ST_INT32:
+			serviceInfo->setAttribute(uAttribId, (qint32)element.data.int32);
+			break;
+		case SDP_ST_INT16:
+			serviceInfo->setAttribute(uAttribId, (qint16)element.data.int16);
+			break;
+		case SDP_ST_INT8:
+			serviceInfo->setAttribute(uAttribId, (qint8)element.data.int8);
+			break;
+		default:
+			Q_ASSERT(false); // this shouldn't ever happen
+			break;
+		}
+		break;
 	case SDP_TYPE_UUID:
-
-	case SDP_TYPE_STRING:
-
-	case SDP_TYPE_URL:
-	case SDP_TYPE_SEQUENCE:
-	case SDP_TYPE_ALTERNATIVE:
+		switch ((SDP_SPECIFICTYPE)element.specificType)
+		{
+			// don't forget to add these
+		default:
+			break;
+		}
+		break;
 	case SDP_TYPE_BOOLEAN:
-
+		serviceInfo->setAttribute(uAttribId, (bool)element.data.booleanVal);
+		break;
+	case SDP_TYPE_STRING:
+		serviceInfo->setAttribute(uAttribId, QString::fromLatin1((char*)element.data.string.value, element.data.string.length));
+		qDebug() << serviceInfo->attribute(uAttribId).toString();
+		break;
+	case SDP_TYPE_URL:
+		break;
+	case SDP_TYPE_SEQUENCE:
+		break;
+	case SDP_TYPE_ALTERNATIVE:
+		break;
 	case SDP_TYPE_NIL:
 		break;
 	default:
@@ -112,11 +167,7 @@ BluetoothServiceDiscoveryAgent::BluetoothServiceDiscoveryAgent(QObject *parent /
 	: QObject(parent)
 	, d_ptr(new BluetoothServiceDiscoveryAgentPrivate(this))
 {
-	connect(this, &BluetoothServiceDiscoveryAgent::stop, this, [&]()
-	{
-		Q_D(BluetoothServiceDiscoveryAgent);
-		d->stopDiscovery.store(true);
-	});
+
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -172,6 +223,8 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 	{
 		Q_D(BluetoothServiceDiscoveryAgent);
 
+		bool serviceNotFound = false;
+
 		// Get the windows style address
 		SOCKADDR_BTH btAddr;
 		btAddr.addressFamily = AF_BTH;
@@ -216,14 +269,14 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 				{
 				case WSASERVICE_NOT_FOUND:
 					// usually means the device couldn't be connected to or doesn't advertise any services
-					return true;
+					serviceNotFound = true;
 				default:
 					d->setError(InvalidBluetoothAdapterError, BluetoothException(ERR).what());
 				}
 			}
 		}
 
-		if (!d->stopDiscovery)
+		if (!d->stopDiscovery || serviceNotFound)
 		{
 			// find all the services
 			const DWORD BUFFSIZE = 2048;
@@ -257,6 +310,7 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 
 			switch (WSAGetLastError())
 			{
+			case ERROR_SUCCESS:
 			case WSA_E_NO_MORE:
 				// expected way for the loop to end
 				break;
@@ -273,13 +327,25 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 
 		if (d->stopDiscovery)
 		{
-			this->canceled();
+			emit this->canceled();
 			retVal = false;
 		}
 
-		this->finished();
+		if (serviceNotFound)
+			retVal = false;
+
+		emit this->finished();
 		return retVal;
 	}));
+}
+
+//--------------------------------------------------------------------------------------------------
+//	stop (public ) []
+//--------------------------------------------------------------------------------------------------
+void BluetoothServiceDiscoveryAgent::stop()
+{
+	Q_D(BluetoothServiceDiscoveryAgent);
+	d->stopDiscovery.store(true);
 }
 
 //--------------------------------------------------------------------------------------------------

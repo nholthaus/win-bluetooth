@@ -48,12 +48,14 @@
 #include <QList>
 #include <QVariant> 
 #include <QObject>
+#include <QSharedDataPointer>
 
 //-------------------------
 //	FORWARD DECLARATIONS
 //-------------------------
 
 class BluetoothServiceInfoPrivate;
+class BluetoothDeviceInfo;
 
 //--------------------------------------------------------------------------------------------------
 //	BluetoothServiceInfo
@@ -61,8 +63,7 @@ class BluetoothServiceInfoPrivate;
 
 class BluetoothServiceInfo
 {
-	Q_GADGET
-	Q_DECLARE_PRIVATE(BluetoothServiceInfo)
+	Q_GADGET;
 
 public:
 
@@ -122,15 +123,23 @@ public:
 
 	BluetoothServiceInfo();
 	virtual ~BluetoothServiceInfo();
-	
+	BluetoothServiceInfo(const BluetoothServiceInfo& other);
+
 	QVariant attribute(quint16 attributeId) const;
 	QList<quint16> attributes() const;
 	bool contains(quint16 attributeId) const;
+	BluetoothDeviceInfo device() const;
+
+	void setAttribute(quint16 attributeId, const QVariant& value);
+
+	void setDevice(const BluetoothDeviceInfo& device);
 
 private:
 
-	BluetoothServiceInfoPrivate*	d_ptr;
+	QSharedDataPointer<BluetoothServiceInfoPrivate>	d;
 
 };
+
+Q_DECLARE_TYPEINFO(BluetoothServiceInfo, Q_MOVABLE_TYPE);
 
 #endif // bluetoothServiceinfo_h__

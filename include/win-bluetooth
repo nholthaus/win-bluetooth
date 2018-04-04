@@ -6,6 +6,8 @@
 #include <bluetoothTransferReply.h>
 #include <bluetoothTransferManager.h>
 #include <bluetoothDeviceInfo.h>
+#include <bluetoothServiceDiscoveryAgent.h>
+#include <bluetoothServiceinfo.h>
 
 #ifdef _WINDOWS_
 #error Don't include windows.h or bluetoothUtils.h in header files!
