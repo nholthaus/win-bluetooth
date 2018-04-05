@@ -291,6 +291,12 @@ TEST_F(BluetoothTest, serviceInfo)
 
 	eventLoop.exec();
 
+	for (const auto& service : agent.discoveredServices())
+	{
+		EXPECT_TRUE(service.isComplete());
+		EXPECT_TRUE(service.isValid());
+	}
+
 }
 
 TEST_F(BluetoothTest, transferManager)

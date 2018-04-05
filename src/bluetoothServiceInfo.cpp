@@ -1,5 +1,6 @@
 #include <bluetoothServiceinfo.h>
 #include <bluetoothDeviceInfo.h>
+#include <bluetoothUuids.h>
 #include <QSharedData>
 
 //--------------------------------------------------------------------------------------------------
@@ -88,9 +89,52 @@ BluetoothDeviceInfo BluetoothServiceInfo::device() const
 }
 
 //--------------------------------------------------------------------------------------------------
+//	isComplete (public ) []
+//--------------------------------------------------------------------------------------------------
+bool BluetoothServiceInfo::isComplete() const
+{
+	return d->m_attributes.keys().contains(ProtocolDescriptorList);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	isValid (public ) []
+//--------------------------------------------------------------------------------------------------
+bool BluetoothServiceInfo::isValid() const
+{
+	return !d->m_attributes.isEmpty();
+}
+
+//--------------------------------------------------------------------------------------------------
+//	protocolDescriptor (public ) []
+//--------------------------------------------------------------------------------------------------
+BluetoothServiceInfo::Sequence BluetoothServiceInfo::protocolDescriptor(BluetoothUuid protocol) const
+{
+	Sequence retVal;
+
+// 	if(protocol == BluetoothUuid::)
+	return retVal;
+}
+
+//--------------------------------------------------------------------------------------------------
 //	setAttribute (public ) []
 //--------------------------------------------------------------------------------------------------
 void BluetoothServiceInfo::setAttribute(quint16 attributeId, const QVariant& value)
+{
+	d->m_attributes.insert(attributeId, value);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	setAttribute (public ) []
+//--------------------------------------------------------------------------------------------------
+void BluetoothServiceInfo::setAttribute(quint16 attributeId, const Sequence& value)
+{
+	d->m_attributes.insert(attributeId, value);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	setAttribute (public ) []
+//--------------------------------------------------------------------------------------------------
+void BluetoothServiceInfo::setAttribute(quint16 attributeId, const Alternative& value)
 {
 	d->m_attributes.insert(attributeId, value);
 }

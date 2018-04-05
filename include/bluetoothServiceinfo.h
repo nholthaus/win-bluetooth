@@ -56,6 +56,7 @@
 
 class BluetoothServiceInfoPrivate;
 class BluetoothDeviceInfo;
+class BluetoothUuid;
 
 //--------------------------------------------------------------------------------------------------
 //	BluetoothServiceInfo
@@ -71,6 +72,7 @@ public:
 
 	class Alternative : public QList<QVariant>
 	{
+	public:
 		Alternative() = default;
 		Alternative(const QList<QVariant> &list)
 		{
@@ -81,6 +83,7 @@ public:
 
 	class Sequence : public QList<QVariant>
 	{
+	public:
 		Sequence() = default;
 		Sequence(const QList<QVariant> &list)
 		{
@@ -129,8 +132,14 @@ public:
 	QList<quint16> attributes() const;
 	bool contains(quint16 attributeId) const;
 	BluetoothDeviceInfo device() const;
+	bool isComplete() const;
+//	bool isRegistered() const;
+	bool isValid() const;
+	Sequence protocolDescriptor(BluetoothUuid protocol) const;
 
 	void setAttribute(quint16 attributeId, const QVariant& value);
+	void setAttribute(quint16 attributeId, const Sequence& value);
+	void setAttribute(quint16 attributeId, const Alternative& value);
 
 	void setDevice(const BluetoothDeviceInfo& device);
 

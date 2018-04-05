@@ -58,6 +58,9 @@ class BluetoothUuid
 public:
 	
 	BluetoothUuid();
+	BluetoothUuid(QUuid uuid);
+	BluetoothUuid(quint16 uuid);
+	BluetoothUuid(quint32 uuid);
 	BluetoothUuid(Protocol protocol);
 	BluetoothUuid(ServiceClass serviceClass);
 
@@ -73,5 +76,7 @@ private:
 	
 	QUuid m_uuid;
 };
+
+Q_DECLARE_METATYPE(BluetoothUuid)
 
 #endif // bluetoothUuids_h__

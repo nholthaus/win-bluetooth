@@ -3,7 +3,6 @@
 #include <bluetoothException.h>
 
 #include <QAtomicInt>
-#include <QDebug>
 #include <QFuture>
 #include <QFutureSynchronizer>
 #include <QtConcurrent/QtConcurrent>
@@ -60,14 +59,10 @@ private:
 //	CALLBACK FUNCTIONS
 //--------------------------------------------------------------------------------------------------
 
-BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize, LPVOID pvParam)
+/// extract the actual data type from the union
+/// https://msdn.microsoft.com/en-us/library/windows/desktop/aa363054(v=vs.85).aspx
+QVariant elementData(const SDP_ELEMENT_DATA& element)
 {
-	SDP_ELEMENT_DATA element;
-	if (BluetoothSdpGetElementData(pValueStream, cbStreamSize, &element) != ERROR_SUCCESS)
-		return FALSE;
-
-	auto serviceInfo = reinterpret_cast<BluetoothServiceInfo*>(pvParam);
-
 	switch ((SDP_TYPE)element.type)
 	{
 		// TODO: do something with the SDP attributes
@@ -78,16 +73,16 @@ BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize
 			Q_ASSERT(false);
 			break;	// support this someday I guess
 		case SDP_ST_UINT64:
-			serviceInfo->setAttribute(uAttribId, (quint64)element.data.uint64);
+			return (quint64)element.data.uint64;
 			break;
 		case SDP_ST_UINT32:
-			serviceInfo->setAttribute(uAttribId, (quint32)element.data.uint32);
+			return (quint32)element.data.uint32;
 			break;
 		case SDP_ST_UINT16:
-			serviceInfo->setAttribute(uAttribId, (quint16)element.data.uint16);
+			return (quint16)element.data.uint16;
 			break;
 		case SDP_ST_UINT8:
-			serviceInfo->setAttribute(uAttribId, (quint8)element.data.uint8);
+			return (quint8)element.data.uint8;
 			break;
 		default:
 			Q_ASSERT(false); // this shouldn't ever happen
@@ -101,16 +96,16 @@ BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize
 			Q_ASSERT(false);
 			break;	// support this someday I guess
 		case SDP_ST_INT64:
-			serviceInfo->setAttribute(uAttribId, (qint64)element.data.int64);
+			return (qint64)element.data.int64;
 			break;
 		case SDP_ST_INT32:
-			serviceInfo->setAttribute(uAttribId, (qint32)element.data.int32);
+			return (qint32)element.data.int32;
 			break;
 		case SDP_ST_INT16:
-			serviceInfo->setAttribute(uAttribId, (qint16)element.data.int16);
+			return (qint16)element.data.int16;
 			break;
 		case SDP_ST_INT8:
-			serviceInfo->setAttribute(uAttribId, (qint8)element.data.int8);
+			return (qint8)element.data.int8;
 			break;
 		default:
 			Q_ASSERT(false); // this shouldn't ever happen
@@ -120,44 +115,117 @@ BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize
 	case SDP_TYPE_UUID:
 		switch ((SDP_SPECIFICTYPE)element.specificType)
 		{
-			// don't forget to add these
+		case SDP_ST_UUID128:
+			return QVariant(BluetoothUuid(element.data.uuid128));
+			break;
+		case SDP_ST_UUID32:
+			return (quint32)element.data.uuid32;
+			break;
+		case SDP_ST_UUID16:
+			return (quint16)element.data.uuid16;
+			break;
 		default:
 			break;
 		}
 		break;
 	case SDP_TYPE_BOOLEAN:
-		serviceInfo->setAttribute(uAttribId, (bool)element.data.booleanVal);
+		return (bool)element.data.booleanVal;
 		break;
 	case SDP_TYPE_STRING:
-		serviceInfo->setAttribute(uAttribId, QString::fromLatin1((char*)element.data.string.value, element.data.string.length));
-		qDebug() << serviceInfo->attribute(uAttribId).toString();
+		return QString::fromLatin1((char*)element.data.string.value, element.data.string.length);
 		break;
 	case SDP_TYPE_URL:
+		return QString::fromLatin1((char*)element.data.url.value, element.data.url.length);
 		break;
-	case SDP_TYPE_SEQUENCE:
-		break;
-	case SDP_TYPE_ALTERNATIVE:
-		break;
-	case SDP_TYPE_NIL:
-		break;
+	// these need special handling
+	case SDP_TYPE_SEQUENCE:		[[fallthrough]];
+	case SDP_TYPE_ALTERNATIVE:	[[fallthrough]];
+	case SDP_TYPE_NIL:			[[fallthrough]];
 	default:
 		break;
 	}
 
-	if (element.type == SDP_TYPE_SEQUENCE)
+	return QVariant();
+}
+
+/// callback for enumerating SDP attributes
+BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize, LPVOID pvParam)
+{
+	SDP_ELEMENT_DATA element;
+	if (BluetoothSdpGetElementData(pValueStream, cbStreamSize, &element) != ERROR_SUCCESS)
+		return FALSE;
+
+	auto serviceInfo = reinterpret_cast<BluetoothServiceInfo*>(pvParam);
+	
+	// handle simple SDP types
+	auto data = elementData(element);
+	if (data.isValid())
 	{
-		HBLUETOOTH_CONTAINER_ELEMENT container = nullptr;
-		SDP_ELEMENT_DATA sequence_data;
-		while (ERROR_SUCCESS == BluetoothSdpGetContainerElementData(element.data.sequence.value, element.data.sequence.length, &container, &sequence_data))
-		{
-			qDebug() << "don't compile this away";
-		}
+		serviceInfo->setAttribute(uAttribId, data);
+		return TRUE;
 	}
 
-	// TODO: do something with the SDP attributes
+	// Handle SDP sequences. They have to be unpacked recursively
+	if (element.type == SDP_TYPE_SEQUENCE)
+	{
+		BluetoothServiceInfo::Sequence sequence;
 
+		// recursive lambda :S
+		std::function<void(BluetoothServiceInfo::Sequence&, const SDP_ELEMENT_DATA&)> unpackSequence = 
+			[&unpackSequence](BluetoothServiceInfo::Sequence& seq, const SDP_ELEMENT_DATA& element)
+		{
+			SDP_ELEMENT_DATA sequence_data;
+			HBLUETOOTH_CONTAINER_ELEMENT container = nullptr;
+			while (ERROR_SUCCESS == BluetoothSdpGetContainerElementData(element.data.sequence.value, element.data.sequence.length, &container, &sequence_data))
+			{
+				if (sequence_data.type == SDP_TYPE_SEQUENCE)
+				{
+					BluetoothServiceInfo::Sequence sequence;
+					seq.append(sequence);
+					unpackSequence(sequence, sequence_data);
+				}
+				else
+					seq.append(elementData(sequence_data));
+			}
+		};
+		
+		unpackSequence(sequence,element);
+		serviceInfo->setAttribute(uAttribId, sequence);
+		return TRUE;
+	}
 
-	return TRUE;
+	// Handle SDP sequences. They have to be unpacked recursively
+	// NOTE: none of my test devices enumerated any attributes, so I'm just treating them like
+	// sequences because they kind of look like sequences. This may not be totally correct - NMH 4/5/18.
+	if (element.type == SDP_TYPE_ALTERNATIVE)
+	{
+		BluetoothServiceInfo::Alternative alternative;
+
+		// recursive lambda :S
+		std::function<void(BluetoothServiceInfo::Alternative&, const SDP_ELEMENT_DATA&)> unpackAlternative =
+			[&unpackAlternative](BluetoothServiceInfo::Alternative& alt, const SDP_ELEMENT_DATA& element)
+		{
+			SDP_ELEMENT_DATA alternative_data;
+			HBLUETOOTH_CONTAINER_ELEMENT container = nullptr;
+			while (ERROR_SUCCESS == BluetoothSdpGetContainerElementData(element.data.alternative.value, element.data.alternative.length, &container, &alternative_data))
+			{
+				if (alternative_data.type == SDP_TYPE_ALTERNATIVE)
+				{
+					BluetoothServiceInfo::Alternative alternative;
+					alt.append(alternative);
+					unpackAlternative(alternative, alternative_data);
+				}
+				else
+					alt.append(elementData(alternative_data));
+			}
+		};
+
+		unpackAlternative(alternative, element);
+		serviceInfo->setAttribute(uAttribId, alternative);
+		return TRUE;
+	}
+
+	return FALSE;
 }
 
 //--------------------------------------------------------------------------------------------------
