@@ -68,6 +68,7 @@ public:
 
 	operator QUuid() const;
 	operator GUID() const;
+	bool operator==(const BluetoothUuid& other) const;
 
 private:
 

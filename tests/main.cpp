@@ -284,19 +284,32 @@ TEST_F(BluetoothTest, serviceInfo)
 {
 	QEventLoop eventLoop;
 
-	BluetoothServiceDiscoveryAgent agent("RELENTLESS");
+	BluetoothServiceDiscoveryAgent agent(/*"RELENTLESS"*/"SAMSUNG-SM-G935V");
 	QObject::connect(&agent, &BluetoothServiceDiscoveryAgent::finished, &eventLoop, &QEventLoop::quit);
 	
 	agent.start(BluetoothServiceDiscoveryAgent::FullDiscovery);
 
 	eventLoop.exec();
 
+	QSet<int> knownChannels;
 	for (const auto& service : agent.discoveredServices())
 	{
+		qDebug() << service.serviceName() << service.serviceDescription() << service.serviceClassUuids();
 		EXPECT_TRUE(service.isComplete());
 		EXPECT_TRUE(service.isValid());
-	}
+		EXPECT_FALSE(service.serviceClassUuids().isEmpty());
+		EXPECT_FALSE(knownChannels.contains(service.serverChannel())) << "This means there's a duplicate entry in the service list";
+		knownChannels.insert(service.serverChannel());
+	}	
+}
 
+TEST_F(BluetoothTest, registerService)
+{
+	BluetoothServiceInfo service;
+	service.setServiceUuid(BluetoothUuid(ServiceClass::MSDNBluetoothConnectionExample));
+	service.setServiceDescription("win-bluetooth test service");
+	service.setServiceProvider("Menari Softworks");
+	service.registerService();
 }
 
 TEST_F(BluetoothTest, transferManager)

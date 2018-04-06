@@ -116,13 +116,13 @@ QVariant elementData(const SDP_ELEMENT_DATA& element)
 		switch ((SDP_SPECIFICTYPE)element.specificType)
 		{
 		case SDP_ST_UUID128:
-			return QVariant(BluetoothUuid(element.data.uuid128));
+			return BluetoothUuid(element.data.uuid128);
 			break;
 		case SDP_ST_UUID32:
-			return (quint32)element.data.uuid32;
+			return BluetoothUuid((quint32)element.data.uuid32);
 			break;
 		case SDP_ST_UUID16:
-			return (quint16)element.data.uuid16;
+			return BluetoothUuid(element.data.uuid16);
 			break;
 		default:
 			break;
@@ -132,7 +132,7 @@ QVariant elementData(const SDP_ELEMENT_DATA& element)
 		return (bool)element.data.booleanVal;
 		break;
 	case SDP_TYPE_STRING:
-		return QString::fromLatin1((char*)element.data.string.value, element.data.string.length);
+		return QString::fromLatin1((char*)element.data.string.value, element.data.string.length).remove(QChar('\0'));
 		break;
 	case SDP_TYPE_URL:
 		return QString::fromLatin1((char*)element.data.url.value, element.data.url.length);
@@ -181,8 +181,8 @@ BOOL __stdcall callback(ULONG uAttribId, LPBYTE pValueStream, ULONG cbStreamSize
 				if (sequence_data.type == SDP_TYPE_SEQUENCE)
 				{
 					BluetoothServiceInfo::Sequence sequence;
-					seq.append(sequence);
 					unpackSequence(sequence, sequence_data);
+					seq.append(sequence);
 				}
 				else
 					seq.append(elementData(sequence_data));
@@ -361,6 +361,9 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 					break;
 
 				ret = WSALookupServiceNext(lookupHandle, flags, (LPDWORD)&BUFFSIZE, results);
+				if(ret == SOCKET_ERROR) 
+					break;
+
 				auto CSAddr = reinterpret_cast<CSADDR_INFO*>(results->lpcsaBuffer);
 				auto blob = reinterpret_cast<BLOB*>(results->lpBlob);
 				if (blob)

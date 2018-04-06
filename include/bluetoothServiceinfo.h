@@ -34,6 +34,7 @@
 //
 /// @file	bluetoothServiceinfo.h
 /// @brief	class to enable access to the attributes of a Bluetooth service.
+/// @defails	http://read.pudn.com/downloads77/doc/comm/293689/Sdp.pdf
 //
 //--------------------------------------------------------------------------------------------------
 
@@ -49,6 +50,8 @@
 #include <QVariant> 
 #include <QObject>
 #include <QSharedDataPointer>
+
+#include <bluetoothAddress.h>
 
 //-------------------------
 //	FORWARD DECLARATIONS
@@ -77,7 +80,15 @@ public:
 		Alternative(const QList<QVariant> &list)
 		{
 			for (const auto& item : list)
-				this->append(item);
+				QList::append(item);
+		}
+		void append(const QVariant &value)
+		{
+			QList::append(value);
+		}
+		void append(const QList<QVariant> &list)
+		{
+			QList::append(QVariant(list));
 		}
 	};
 
@@ -88,7 +99,15 @@ public:
 		Sequence(const QList<QVariant> &list)
 		{
 			for (const auto& item : list)
-				this->append(item);
+				QList::append(item);
+		}
+		void append(const QVariant &value)
+		{
+			QList::append(value);
+		}
+		void append(const QList<QVariant> &list)
+		{
+			QList::append(QVariant(list));
 		}
 	};
 
@@ -133,15 +152,35 @@ public:
 	bool contains(quint16 attributeId) const;
 	BluetoothDeviceInfo device() const;
 	bool isComplete() const;
-//	bool isRegistered() const;
+	bool isRegistered() const;
 	bool isValid() const;
 	Sequence protocolDescriptor(BluetoothUuid protocol) const;
-
+	int protocolServiceMultiplexer() const;
+	bool registerService(const BluetoothAddress &localAdapter = BluetoothAddress());
+	void removeAttribute(quint16 attributeId);
+	int serverChannel() const;
+	quint8 serviceAvailability() const;
+	QList<BluetoothUuid> serviceClassUuids() const;
+	QString serviceDescription() const;
+	QString serviceName() const;
+	QString serviceProvider() const;
+	BluetoothUuid serviceUuid() const;
 	void setAttribute(quint16 attributeId, const QVariant& value);
+	void setAttribute(quint16 attributeId, const BluetoothUuid& value);
 	void setAttribute(quint16 attributeId, const Sequence& value);
 	void setAttribute(quint16 attributeId, const Alternative& value);
-
 	void setDevice(const BluetoothDeviceInfo& device);
+	void setServiceAvailability(quint8 availability);
+	void setServiceDescription(const QString& description);
+	void setServiceName(const QString &name);
+	void setServiceProvider(const QString &provider);
+	void setServiceUuid(const BluetoothUuid &uuid);
+	Protocol socketProtocol() const;
+	bool unregisterService();
+
+private:
+
+	bool adjustProcessPrivileges();
 
 private:
 
@@ -150,5 +189,7 @@ private:
 };
 
 Q_DECLARE_TYPEINFO(BluetoothServiceInfo, Q_MOVABLE_TYPE);
+Q_DECLARE_METATYPE(BluetoothServiceInfo::Sequence);
+Q_DECLARE_METATYPE(BluetoothServiceInfo::Alternative);
 
 #endif // bluetoothServiceinfo_h__

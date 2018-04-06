@@ -104,3 +104,11 @@ QString BluetoothUuid::toString() const
  {
 	 return m_uuid;
  }
+
+ //--------------------------------------------------------------------------------------------------
+ //	operator== (public ) []
+ //--------------------------------------------------------------------------------------------------
+ bool BluetoothUuid::operator==(const BluetoothUuid& other) const
+ {
+	 return m_uuid == other.m_uuid;
+ }
