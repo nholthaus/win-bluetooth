@@ -305,11 +305,47 @@ TEST_F(BluetoothTest, serviceInfo)
 
 TEST_F(BluetoothTest, registerService)
 {
+	// register a service
 	BluetoothServiceInfo service;
-	service.setServiceUuid(BluetoothUuid(ServiceClass::MSDNBluetoothConnectionExample));
-	service.setServiceDescription("win-bluetooth test service");
+	QString serviceName = "win-bluetooth test service";
+	QString serviceDescription = "Test service for test purposes";
+	BluetoothUuid uuid = BluetoothUuid(ServiceClass::MSDNBluetoothConnectionExample);
+	service.setServiceUuid(uuid);
+	service.setServiceName(serviceName);
+	service.setServiceDescription(serviceDescription);
 	service.setServiceProvider("Menari Softworks");
 	service.registerService();
+
+	EXPECT_TRUE(service.isRegistered()); 
+
+	QEventLoop eventLoop;
+
+	// check that it's there
+	BluetoothServiceDiscoveryAgent agent(QHostInfo::localHostName());
+	QObject::connect(&agent, &BluetoothServiceDiscoveryAgent::finished, &eventLoop, &QEventLoop::quit);
+
+	agent.start(BluetoothServiceDiscoveryAgent::FullDiscovery);
+
+	eventLoop.exec();
+
+	bool foundTheTestService = false;
+	for (const auto& service : agent.discoveredServices())
+	{
+		if(service.serviceName() == serviceName)
+		{
+			qDebug() << service.serviceName() << service.serviceDescription() << service.serviceClassUuids();
+			EXPECT_TRUE(service.isComplete());
+			EXPECT_TRUE(service.isValid());
+			EXPECT_EQ(uuid, service.serviceClassUuids().first());
+			EXPECT_STREQ(STR(serviceName), STR(service.serviceName()));
+			EXPECT_STREQ(STR(serviceDescription), STR(service.serviceDescription()));
+			foundTheTestService = true;
+		}
+	}
+
+	EXPECT_TRUE(foundTheTestService);
+
+	// unregister the service
 }
 
 TEST_F(BluetoothTest, transferManager)

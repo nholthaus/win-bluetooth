@@ -186,38 +186,68 @@ int BluetoothServiceInfo::protocolServiceMultiplexer() const
 //--------------------------------------------------------------------------------------------------
 bool BluetoothServiceInfo::registerService(const BluetoothAddress &localAdapter /*= BluetoothAddress()*/)
 {
-	if (d->m_registered)
-		return false;
+	return registerService(localAdapter, false);
+}
 
-	if (!adjustProcessPrivileges())
-		return false;
+//--------------------------------------------------------------------------------------------------
+//	registerService (private ) []
+//--------------------------------------------------------------------------------------------------
+bool BluetoothServiceInfo::registerService(const BluetoothAddress & localAdapter, bool unregister /*= false*/)
+{
+	bool ret = true;
 
-	// find the local radio to register with
-	BluetoothRadio* radio = &Bluetooth::localRadio(true);
-	for (auto& [localRadioName, localRadio] : Bluetooth::localRadios())
-	{
-		if (localRadio == static_cast<size_t>(localAdapter))
-			radio = &localRadio;
-	}
+	// Register the service with WSASetService
+	WSAQUERYSET		wsaQuerySet = { 0 };
+	SOCKADDR_BTH	SockAddrBthLocal = { 0 };
+	LPCSADDR_INFO	lpCSAddrInfo = new CSADDR_INFO;
 
-	GUID guid = serviceUuid();
+	// setup the address info
+	SockAddrBthLocal.addressFamily = AF_BTH;
+	SockAddrBthLocal.port = BT_PORT_ANY;
+	SockAddrBthLocal.btAddr = localAdapter;
 
-	BLUETOOTH_LOCAL_SERVICE_INFO info;
-	ZeroMemory(&info.szName, sizeof(info.szName));
-	ZeroMemory(&info.szDeviceString, sizeof(info.szDeviceString));
+	lpCSAddrInfo[0].LocalAddr.iSockaddrLength = sizeof(SOCKADDR_BTH);
+	lpCSAddrInfo[0].LocalAddr.lpSockaddr = (LPSOCKADDR)&SockAddrBthLocal;
+	lpCSAddrInfo[0].RemoteAddr.iSockaddrLength = sizeof(SOCKADDR_BTH);
+	lpCSAddrInfo[0].RemoteAddr.lpSockaddr = (LPSOCKADDR)&SockAddrBthLocal;
+	lpCSAddrInfo[0].iSocketType = SOCK_STREAM;
+	lpCSAddrInfo[0].iProtocol = BTHPROTO_RFCOMM;
 
-	info.Enabled = TRUE;
-	info.btAddr.ullLong = radio->address();
-	serviceName().toWCharArray(info.szName);
-	serviceDescription().toWCharArray(info.szDeviceString);
+	// get variables from the class and convert them to MS types
+	GUID serviceClass = this->serviceUuid();
+	LPSTR serviceName = new char[this->serviceName().size() + 1];
+	if (!this->serviceName().isEmpty())
+		strcpy_s(serviceName, this->serviceName().size() + 1, this->serviceName().toLatin1().constData());
+	serviceName[this->serviceName().size()] = '\0';
 
-	if (ERROR_SUCCESS != BluetoothSetLocalServiceInfo(radio->handle(), &guid, 1, &info))
-		throw BluetoothException(ERR);
+	LPSTR serviceDescription = new char[this->serviceDescription().size() + 1];
+	if (!this->serviceDescription().isEmpty())
+		strcpy_s(serviceDescription, this->serviceDescription().size() + 1, this->serviceDescription().toLatin1().constData());
+	serviceDescription[this->serviceDescription().size()] = '\0';
+
+	// Setup the query set
+	ZeroMemory(&wsaQuerySet, sizeof(WSAQUERYSET));
+	wsaQuerySet.dwSize = sizeof(WSAQUERYSET);
+	wsaQuerySet.lpServiceClassId = (LPGUID)&serviceClass;
+	wsaQuerySet.lpszServiceInstanceName = serviceName;
+	wsaQuerySet.lpszComment = serviceDescription;
+	wsaQuerySet.dwNameSpace = NS_BTH;
+	wsaQuerySet.dwNumberOfCsAddrs = 1;			// Must be 1.
+	wsaQuerySet.lpcsaBuffer = lpCSAddrInfo; // Req'd.
+
+	WSAESETSERVICEOP op = unregister ? RNRSERVICE_DELETE : RNRSERVICE_REGISTER;
+	if (SOCKET_ERROR == WSASetService(&wsaQuerySet, op, 0))
+		ret = false;
 	else
 	{
-		d->m_registered = true;
-		return true;
+		// it worked, set the device
+		d->m_registered = !unregister;
+		BluetoothDeviceInfo device()
 	}
+
+
+	delete lpCSAddrInfo;
+	return ret;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -401,57 +431,16 @@ BluetoothServiceInfo::Protocol BluetoothServiceInfo::socketProtocol() const
 //--------------------------------------------------------------------------------------------------
 bool BluetoothServiceInfo::unregisterService()
 {
+	return registerService(localAdapter, false);
 	d->m_registered = false;
-	return true;
-}
 
-//--------------------------------------------------------------------------------------------------
-//	adjustProcessPriviliges (private ) []
-//--------------------------------------------------------------------------------------------------
-bool BluetoothServiceInfo::adjustProcessPrivileges()
-{
-	HANDLE procToken;
-	LUID luid;
-	TOKEN_PRIVILEGES tp;
-	BOOL bRetVal;
-	DWORD err;
 
-	bRetVal = OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &procToken);
-	if (!bRetVal)
-	{
-		err = GetLastError();
-		printf("OpenProcessToken failed, err = %d\n", err);
-		return bRetVal;
-	}
 
-	bRetVal = LookupPrivilegeValue(nullptr, SE_LOAD_DRIVER_NAME, &luid);
-	if (!bRetVal)
-	{
-		err = GetLastError();
-		printf("LookupPrivilegeValue failed, err = %d\n", err);
-		CloseHandle(procToken);
-	}
 
-	tp.PrivilegeCount = 1;
-	tp.Privileges[0].Luid = luid;
-	tp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
-	//
-	// AdjustTokenPrivileges can succeed even when privileges are not adjusted.
-	// In such case GetLastError returns ERROR_NOT_ALL_ASSIGNED.
-	//
-	// Hence we check for GetLastError in both success and failure case.
-	//
 
-	(void)AdjustTokenPrivileges(procToken, FALSE, &tp, sizeof(TOKEN_PRIVILEGES), (PTOKEN_PRIVILEGES)nullptr, (PDWORD)nullptr);
-	err = GetLastError();
 
-	if (err != ERROR_SUCCESS)
-	{
-		bRetVal = false;
-		printf("AdjustTokenPrivileges failed, err = %d\n", err);
-		CloseHandle(procToken);
-	}
 
-	return bRetVal;
+
+	return false;
 }

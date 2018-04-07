@@ -180,7 +180,7 @@ public:
 
 private:
 
-	bool adjustProcessPrivileges();
+	bool registerService(const BluetoothAddress & localAdapter, bool unregister = false);
 
 private:
 
