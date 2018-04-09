@@ -195,6 +195,9 @@ bool BluetoothServiceInfo::registerService(const BluetoothAddress &localAdapter 
 bool BluetoothServiceInfo::registerService(const BluetoothAddress & localAdapter, bool unregister /*= false*/)
 {
 	bool ret = true;
+	BluetoothAddress adapterToUse = localAdapter;
+	if (adapterToUse == BluetoothAddress())
+		adapterToUse = Bluetooth::localRadio().address();
 
 	// Register the service with WSASetService
 	WSAQUERYSET		wsaQuerySet = { 0 };
@@ -204,7 +207,7 @@ bool BluetoothServiceInfo::registerService(const BluetoothAddress & localAdapter
 	// setup the address info
 	SockAddrBthLocal.addressFamily = AF_BTH;
 	SockAddrBthLocal.port = BT_PORT_ANY;
-	SockAddrBthLocal.btAddr = localAdapter;
+	SockAddrBthLocal.btAddr = adapterToUse;
 
 	lpCSAddrInfo[0].LocalAddr.iSockaddrLength = sizeof(SOCKADDR_BTH);
 	lpCSAddrInfo[0].LocalAddr.lpSockaddr = (LPSOCKADDR)&SockAddrBthLocal;
@@ -241,10 +244,17 @@ bool BluetoothServiceInfo::registerService(const BluetoothAddress & localAdapter
 	else
 	{
 		// it worked, set the device
-		d->m_registered = !unregister;
-		BluetoothDeviceInfo device()
+		if(op == RNRSERVICE_REGISTER)
+		{		
+			d->m_registered = true;
+			d->m_device = BluetoothDeviceInfo(adapterToUse, Bluetooth::name(adapterToUse), BluetoothDeviceInfo::ComputerDevice);
+		}
+		else 
+		{
+			d->m_registered = false;
+			d->m_device = BluetoothDeviceInfo();
+		}
 	}
-
 
 	delete lpCSAddrInfo;
 	return ret;
@@ -431,16 +441,5 @@ BluetoothServiceInfo::Protocol BluetoothServiceInfo::socketProtocol() const
 //--------------------------------------------------------------------------------------------------
 bool BluetoothServiceInfo::unregisterService()
 {
-	return registerService(localAdapter, false);
-	d->m_registered = false;
-
-
-
-
-
-
-
-
-
-	return false;
+	return registerService(d->m_device.address(), true);
 }

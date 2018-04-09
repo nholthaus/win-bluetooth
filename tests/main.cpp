@@ -284,7 +284,8 @@ TEST_F(BluetoothTest, serviceInfo)
 {
 	QEventLoop eventLoop;
 
-	BluetoothServiceDiscoveryAgent agent(/*"RELENTLESS"*/"SAMSUNG-SM-G935V");
+	QString adapterName = "SAMSUNG-SM-G935V";
+	BluetoothServiceDiscoveryAgent agent(adapterName);
 	QObject::connect(&agent, &BluetoothServiceDiscoveryAgent::finished, &eventLoop, &QEventLoop::quit);
 	
 	agent.start(BluetoothServiceDiscoveryAgent::FullDiscovery);
@@ -292,9 +293,10 @@ TEST_F(BluetoothTest, serviceInfo)
 	eventLoop.exec();
 
 	QSet<int> knownChannels;
+	qDebug() << "DEVICE:" << adapterName;
 	for (const auto& service : agent.discoveredServices())
 	{
-		qDebug() << service.serviceName() << service.serviceDescription() << service.serviceClassUuids();
+		qDebug() << "    " << service.serviceName() << service.serviceDescription() << service.serviceClassUuids();
 		EXPECT_TRUE(service.isComplete());
 		EXPECT_TRUE(service.isValid());
 		EXPECT_FALSE(service.serviceClassUuids().isEmpty());
@@ -321,7 +323,7 @@ TEST_F(BluetoothTest, registerService)
 	QEventLoop eventLoop;
 
 	// check that it's there
-	BluetoothServiceDiscoveryAgent agent(QHostInfo::localHostName());
+	BluetoothServiceDiscoveryAgent agent;
 	QObject::connect(&agent, &BluetoothServiceDiscoveryAgent::finished, &eventLoop, &QEventLoop::quit);
 
 	agent.start(BluetoothServiceDiscoveryAgent::FullDiscovery);
@@ -329,11 +331,12 @@ TEST_F(BluetoothTest, registerService)
 	eventLoop.exec();
 
 	bool foundTheTestService = false;
+	qDebug() << "DEVICE:" << QHostInfo::localHostName();
 	for (const auto& service : agent.discoveredServices())
 	{
 		if(service.serviceName() == serviceName)
 		{
-			qDebug() << service.serviceName() << service.serviceDescription() << service.serviceClassUuids();
+			qDebug() << "    " << service.serviceName() << service.serviceDescription() << service.serviceClassUuids();
 			EXPECT_TRUE(service.isComplete());
 			EXPECT_TRUE(service.isValid());
 			EXPECT_EQ(uuid, service.serviceClassUuids().first());
@@ -346,6 +349,22 @@ TEST_F(BluetoothTest, registerService)
 	EXPECT_TRUE(foundTheTestService);
 
 	// unregister the service
+	service.unregisterService();
+	EXPECT_FALSE(service.isRegistered());
+
+	agent.start(BluetoothServiceDiscoveryAgent::FullDiscovery);
+	eventLoop.exec();
+
+	if (!agent.discoveredServices().isEmpty())
+		foundTheTestService = false;
+
+	for (const auto& service : agent.discoveredServices())
+	{
+		if (service.serviceName() == serviceName)
+			foundTheTestService = true;
+	}
+
+	EXPECT_FALSE(foundTheTestService);
 }
 
 TEST_F(BluetoothTest, transferManager)

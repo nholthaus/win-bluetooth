@@ -1,6 +1,7 @@
 #include <bluetoothServiceDiscoveryAgent.h>
 #include <bluetoothAddress.h>
 #include <bluetoothException.h>
+#include <bluetooth.h>
 
 #include <QAtomicInt>
 #include <QFuture>
@@ -235,7 +236,7 @@ BluetoothServiceDiscoveryAgent::BluetoothServiceDiscoveryAgent(QObject *parent /
 	: QObject(parent)
 	, d_ptr(new BluetoothServiceDiscoveryAgentPrivate(this))
 {
-
+	this->setRemoteAddress(Bluetooth::localRadio().address());
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -244,7 +245,10 @@ BluetoothServiceDiscoveryAgent::BluetoothServiceDiscoveryAgent(QObject *parent /
 BluetoothServiceDiscoveryAgent::BluetoothServiceDiscoveryAgent(const BluetoothAddress &deviceAdapter, QObject *parent /*= Q_NULLPTR*/)
 	: BluetoothServiceDiscoveryAgent(parent)
 {
-	this->setRemoteAddress(deviceAdapter);
+	if (deviceAdapter == BluetoothAddress())
+		this->setRemoteAddress(Bluetooth::localRadio().address());
+	else
+		this->setRemoteAddress(deviceAdapter);
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -325,7 +329,17 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 
 		// set the service flags
 		if (mode == FullDiscovery)
+		{
+			d->discoveredServices.clear();
 			flags |= LUP_FLUSHCACHE;	// ignore system cache and do a new query
+		}
+		else
+		{
+			// use cached values if there are some
+			if(!d->discoveredServices.isEmpty())
+				for(const auto& service : d->discoveredServices)
+					emit this->serviceDiscovered(service);
+		}
 		flags |= LUP_RETURN_ALL;
 
 		if (!d->stopDiscovery)
@@ -338,6 +352,7 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 				case WSASERVICE_NOT_FOUND:
 					// usually means the device couldn't be connected to or doesn't advertise any services
 					serviceNotFound = true;
+					break;
 				default:
 					d->setError(InvalidBluetoothAdapterError, BluetoothException(ERR).what());
 				}
@@ -374,7 +389,7 @@ void BluetoothServiceDiscoveryAgent::start(DiscoveryMode mode /*= MinimalDiscove
 					else
 					{
 						d->discoveredServices.append(info);
-						this->serviceDiscovered(info);
+						emit this->serviceDiscovered(info);
 					}
 				}
 			} while (ret != SOCKET_ERROR);
@@ -466,8 +481,20 @@ bool BluetoothServiceDiscoveryAgent::setRemoteAddress(const BluetoothAddress &ad
 	Q_D(BluetoothServiceDiscoveryAgent);
 	if (!isActive()) 
 	{
-		d->remoteAddress = address;
-		return true;
+		QString deviceName = Bluetooth::name(address);
+		if (!Bluetooth::localRadio(deviceName).isValid() && !Bluetooth::remoteDevice(deviceName).isValid())
+		{
+			d->error = InvalidBluetoothAdapterError;
+			d->errorString = QString("%1 (%2) is not a valid local bluetooth adapter")
+				.arg(deviceName)
+				.arg(static_cast<QString>(address));
+			return false;
+		}
+		else
+		{
+			d->remoteAddress = address;
+			return true;
+		}
 	}
 
 	return false;
