@@ -18,6 +18,7 @@
 #include <QCoreApplication>
 #include <QTimer>
 #include <QFile>
+#include <QCommandLineParser>
 
 #define STR(s) s.toStdString().c_str()
 
@@ -367,6 +368,24 @@ TEST_F(BluetoothTest, registerService)
 	EXPECT_FALSE(foundTheTestService);
 }
 
+TEST_F(BluetoothTest, server)
+{
+	BluetoothServer server;
+	EXPECT_TRUE(server.listen(QHostInfo::localHostName(), 5)) << STR(server.errorString());
+
+	QEventLoop eventLoop;
+	QObject::connect(&server, &BluetoothServer::newConnection, [&]()
+	{
+		eventLoop.exit();
+	});
+	eventLoop.exec();
+
+	EXPECT_TRUE(server.hasPendingConnections());
+	auto connectedSocket = server.nextPendingConnection();
+	EXPECT_TRUE(connectedSocket);
+	EXPECT_FALSE(server.hasPendingConnections());
+}
+
 TEST_F(BluetoothTest, transferManager)
 {
 	// for this test to succeed, the receiving PC needs to be in a state where it can accept
@@ -424,8 +443,16 @@ TEST_F(BluetoothTest, transferManager)
 
 int main(int argc, char* argv[])
 {
-	QCoreApplication app(argc, argv);
-
 	::testing::InitGoogleTest(&argc, argv);
+
+	QCoreApplication app(argc, argv);
+	QCoreApplication::setApplicationName("win-bluetooth-test");
+	QCoreApplication::setApplicationVersion("1.0.0");
+
+	QCommandLineParser parser;
+	parser.setApplicationDescription("Test application for the win-bluetooth library");
+	parser.addHelpOption();
+	parser.addVersionOption();
+
 	return RUN_ALL_TESTS();
 }

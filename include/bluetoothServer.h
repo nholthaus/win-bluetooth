@@ -45,6 +45,8 @@
 //	INCLUDES
 //-------------------------
 
+#include <bluetoothServiceInfo.h>
+
 #include <QObject>
 #include <QScopedPointer>
 #include <bluetoothEnums.h>
@@ -56,9 +58,9 @@
 //-------------------------
 
 class BluetoothUuid;
-class BluetoothServiceInfo;
 class BluetoothServerPrivate;
 class BluetoothSocket;
+class BluetoothServiceInfo;
 
 //--------------------------------------------------------------------------------------------------
 //	BluetoothServer
@@ -83,22 +85,37 @@ public:
 
 public:
 
-	BluetoothServer(Protocol serverType = Protocol::RFCOMM, QObject* parent = nullptr);
+	BluetoothServer(BluetoothServiceInfo::Protocol serverType = BluetoothServiceInfo::RfcommProtocol, QObject* parent = nullptr);
 	virtual ~BluetoothServer();
 
 	void close();
 	Error error() const;
+	QString errorString() const;
 	bool hasPendingConnections() const;
 	bool isListening() const;
 	bool listen(const BluetoothAddress& address = BluetoothAddress(), quint16 port = 0);
+	BluetoothServiceInfo listen(const BluetoothUuid &uuid, const QString &serviceName = QString());
 	int maxPendingConnections() const;
-	std::unique_ptr<BluetoothSocket> nextPendingConnection();
+	BluetoothSocket* nextPendingConnection();
 	SecurityFlags securityFlags() const;
 	BluetoothAddress serverAddress() const;
 	quint16 serverPort() const;
-	Protocol serverType() const;
+	BluetoothServiceInfo::Protocol serverType() const;
 	void setMaxPendingConnections(int numConnections);
 	void setSecurityFlags(SecurityFlags security);
+
+public:
+
+	virtual bool waitForConnected(int msecs = 30000);
+
+signals:
+
+	void error(Error error);
+	void newConnection();
+
+protected:
+
+	void setError(Error error, QString errorString);
 
 protected:
 

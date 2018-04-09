@@ -50,6 +50,8 @@
 #include <QAbstractSocket>
 
 #include <bluetoothUuids.h>
+#include <bluetoothEnums.h>
+#include <bluetoothServiceinfo.h>
 
 //-------------------------
 //	FORWARD DECLARATIONS
@@ -103,6 +105,7 @@ public:
 	virtual ~BluetoothSocket();
 
 	void abort();
+	void connectToService(const BluetoothServiceInfo& service, OpenMode openMode = ReadWrite);
 	void connectToService(const BluetoothAddress& address, const BluetoothUuid& uuid, OpenMode openMode = ReadWrite);
 	void connectToService(const BluetoothAddress& address, quint16 port, OpenMode openMode = ReadWrite);
 	void disconnectFromService();
@@ -114,16 +117,23 @@ public:
 	BluetoothAddress peerAddress() const;
 	QString peerName() const;
 	quint16 peerPort() const;
-	Protocol socketType() const;
+	SecurityFlags preferredSecurityFlags() const;
+	void setPreferredSecurityFlags(SecurityFlags flags);
+	bool setSocketDescriptor(int socketDescriptor, BluetoothServiceInfo::Protocol socketType, SocketState socketState = SocketState::ConnectedState, OpenMode openMode = ReadWrite);
+	int socketDescriptor() const;
+	BluetoothServiceInfo::Protocol socketType() const;
 	SocketState state() const;
-	virtual bool waitForReadyRead(int msecs) override;
-	virtual bool waitForBytesWritten(int msecs) override;
-	virtual bool canReadLine() const override;
+
 	
+public:
+
+	virtual qint64 bytesAvailable() const override;
+	virtual bool canReadLine() const override;
 	virtual void close() override;
 	virtual bool isSequential() const override;
 
-	virtual qint64 bytesAvailable() const override;
+	virtual bool waitForReadyRead(int msecs) override;
+	virtual bool waitForBytesWritten(int msecs) override;
 
 signals:
 
