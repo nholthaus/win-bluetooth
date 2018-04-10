@@ -711,13 +711,11 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 	buf.len = maxlen;
 	DWORD flags = 0;
 	DWORD bytesRead = 0;
-// 	OVERLAPPED overlapped;
-// 
-// 	auto completion = [d](DWORD, DWORD, LPWSAOVERLAPPED, DWORD)
-// 	{
-// 		d->setReadComplete();
-// 	};
-	if (SOCKET_ERROR == ::WSARecv(d->socket, &buf, 1, &bytesRead, &flags, /*&overlapped, (LPWSAOVERLAPPED_COMPLETION_ROUTINE)&completion)*/nullptr,nullptr))
+	OVERLAPPED overlapped = { 0 };
+
+	overlapped.hEvent = d->readCompleteEvent;	// this ends up sending the readyRead signal
+
+	if (SOCKET_ERROR == ::WSARecv(d->socket, &buf, 1, &bytesRead, &flags, &overlapped, nullptr))
 	{
 		int err = WSAGetLastError();
 
@@ -754,7 +752,6 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 		}
 	}
 
-	d->setReadComplete();
 	return ret;
 }
 

@@ -408,6 +408,9 @@ TEST_F(BluetoothServerTest, server)
 	EXPECT_TRUE(connectedSocket);
 	EXPECT_FALSE(server.hasPendingConnections());
 
+	// send a message to the client
+	EXPECT_NO_THROW(connectedSocket->write("Server says, why hello there!"));
+
 	// receive a message from the client
 	QObject::connect(connectedSocket, &BluetoothSocket::readyRead, [&]()
 	{
@@ -419,9 +422,6 @@ TEST_F(BluetoothServerTest, server)
 	QString message = connectedSocket->readAll();
 	qDebug() << message;
 	EXPECT_STREQ("Client says hi!", STR(message));
-
-	// send a response to the client
-	EXPECT_NO_THROW(connectedSocket->write("Server says, why hello there!"));
 
 	// wait for the client to disconnect
 	QObject::connect(connectedSocket, &BluetoothSocket::disconnected, [&]()
