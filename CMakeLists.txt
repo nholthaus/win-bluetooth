@@ -139,9 +139,9 @@ find_package(Threads REQUIRED)
 #	RESOURCES
 #-------------------------------------------------------------------------------
 
-list(APPEND RESOURCES
-resources/resources.qrc
-)
+#list(APPEND RESOURCES
+#resources/resources.qrc
+#)
 
 #qt5_add_resources(RESOURCES ${QT_RESOURCES})
 

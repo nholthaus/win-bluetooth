@@ -16,7 +16,7 @@ To tun the unit tests, you will need two windows PC's with bluetooth capability 
 
 2. Start the server PC next with the following command line options:
 
-    `win-bluetooth-test.exe [LOCAL PC HOSTNAME] [LOCAL PC BLUETOOTH ADDRESS] [REMOTE PC HOSTNAME] [REMOTE PC BLUETOOTH ADDRESS] -c`
+    `win-bluetooth-test.exe [LOCAL PC HOSTNAME] [LOCAL PC BLUETOOTH ADDRESS] [REMOTE PC HOSTNAME] [REMOTE PC BLUETOOTH ADDRESS]`
 
     example:
     > win-bluetooth-test.exe DAUNTLESS 5C:F3:70:84:BD:8F RELENTLESS 9C:B6:D0:DF:20:2C

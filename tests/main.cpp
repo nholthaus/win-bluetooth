@@ -384,7 +384,7 @@ TEST_F(BluetoothServerTest, registerService)
 	EXPECT_FALSE(foundTheTestService);
 }
 
-TEST_F(BluetoothServerTest, server)
+TEST_F(BluetoothServerTest, DISABLED_server)
 {
 	// won't pass/complete unless another PC is running in client mode
 	BluetoothServer server;
