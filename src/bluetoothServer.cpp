@@ -208,10 +208,14 @@ BluetoothServer::~BluetoothServer()
 //--------------------------------------------------------------------------------------------------
 void BluetoothServer::close()
 {
-	Q_D(BluetoothServer);
-	d->listeningSocket->close();
-	delete d->listeningSocket;
-	d->listeningSocket = nullptr;
+	Q_D(BluetoothServer); 
+	
+	if(d->listeningSocket)
+	{
+		d->listeningSocket->close();
+		delete d->listeningSocket;
+		d->listeningSocket = nullptr;
+	}
 	d->isListening = false;
 }
 

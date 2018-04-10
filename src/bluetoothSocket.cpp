@@ -47,7 +47,6 @@ public:
 	BluetoothSocket*				q_ptr;
 	SOCKET							socket = INVALID_SOCKET;
 	SOCKADDR_BTH					btAddress;
-	static bool						winsockInitialized;
 	BluetoothSocket::SocketState	state = BluetoothSocket::SocketState::UnconnectedState;
 	BluetoothSocket::SocketError	error = BluetoothSocket::SocketError::NoSocketError;
 	SecurityFlags					securityFlags;
@@ -66,23 +65,15 @@ public:
 	QWaitCondition					bytesWrittenCondition;
 };
 
-// static initialization
-bool BluetoothSocketPrivate::winsockInitialized = false;
-
 //--------------------------------------------------------------------------------------------------
 //	BluetoothSocketPrivate (public ) []
 //--------------------------------------------------------------------------------------------------
 BluetoothSocketPrivate::BluetoothSocketPrivate(BluetoothSocket* q, SOCKET socketDescriptor /*= INVALID_SOCKET*/) : q_ptr(q)
 {
-	if (!winsockInitialized)
-	{
-		// Ask for Winsock version 2.2.
-		WSADATA WSAData = { 0 };
-		if (WSAStartup(MAKEWORD(2, 2), &WSAData))
-			throw BluetoothException("Unable to initialize Winsock version 2.2");
-
-		winsockInitialized = true;
-	}
+	// Ask for Winsock version 2.2.
+	WSADATA WSAData = { 0 };
+	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
+		throw BluetoothException("Unable to initialize Winsock version 2.2");
 
 	// means we're using a default and need to create a new socket
 	if (socketDescriptor == INVALID_SOCKET)
@@ -639,6 +630,7 @@ bool BluetoothSocket::setSocketDescriptor(int socketDescriptor, BluetoothService
 		d_ptr->protocol = socketType;
 		d_ptr->state = socketState;
 		d_ptr->btAddress = btAddress;
+		this->open(openMode);
 		return true;
 	}
 }
@@ -719,13 +711,13 @@ qint64 BluetoothSocket::readData(char *data, qint64 maxlen)
 	buf.len = maxlen;
 	DWORD flags = 0;
 	DWORD bytesRead = 0;
-	OVERLAPPED overlapped;
-
-	auto completion = [d](DWORD, DWORD, LPWSAOVERLAPPED, DWORD)
-	{
-		d->setReadComplete();
-	};
-	if (SOCKET_ERROR == ::WSARecv(d->socket, &buf, 1, &bytesRead, &flags, &overlapped, (LPWSAOVERLAPPED_COMPLETION_ROUTINE)&completion))
+// 	OVERLAPPED overlapped;
+// 
+// 	auto completion = [d](DWORD, DWORD, LPWSAOVERLAPPED, DWORD)
+// 	{
+// 		d->setReadComplete();
+// 	};
+	if (SOCKET_ERROR == ::WSARecv(d->socket, &buf, 1, &bytesRead, &flags, /*&overlapped, (LPWSAOVERLAPPED_COMPLETION_ROUTINE)&completion)*/nullptr,nullptr))
 	{
 		int err = WSAGetLastError();
 
