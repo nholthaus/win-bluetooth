@@ -391,16 +391,47 @@ TEST_F(BluetoothServerTest, server)
 	EXPECT_TRUE(server.listen(QHostInfo::localHostName(), 5)) << STR(server.errorString());
 
 	QEventLoop eventLoop;
+	QObject::connect(&server, QOverload<BluetoothServer::Error>::of(&BluetoothServer::error),
+		[&eventLoop](BluetoothServer::Error err)
+	{
+		eventLoop.exit(1);
+	});
 	QObject::connect(&server, &BluetoothServer::newConnection, [&]()
 	{
 		eventLoop.exit();
 	});
-	eventLoop.exec();
+	int retVal = eventLoop.exec();
 
+	EXPECT_EQ(0, retVal) << STR(server.errorString());
 	EXPECT_TRUE(server.hasPendingConnections());
 	auto connectedSocket = server.nextPendingConnection();
 	EXPECT_TRUE(connectedSocket);
 	EXPECT_FALSE(server.hasPendingConnections());
+
+	// receive a message from the client
+	QObject::connect(connectedSocket, &BluetoothSocket::readyRead, [&]()
+	{
+		eventLoop.exit();
+	});
+	int retVal = eventLoop.exec();
+
+	EXPECT_EQ(0, retVal) << STR(server.errorString());
+	QString message = connectedSocket->readAll();
+	EXPECT_STREQ("Client says hi!", STR(message));
+
+	// send a response to the client
+	connectedSocket->write("Server says, why hello there!");
+
+	// wait for the client to disconnect
+	QObject::connect(connectedSocket, &BluetoothSocket::disconnected, [&]()
+	{
+		eventLoop.exit();
+	});
+	int retVal = eventLoop.exec();
+	EXPECT_EQ(0, retVal) << STR(server.errorString());
+
+	// cleanup
+	delete connectedSocket;
 }
 
 TEST_F(BluetoothServerTest, transferManager)
@@ -481,13 +512,36 @@ TEST_F(BluetoothClientTest, client)
 		eventLoop.exit(1);
 	});
 
+	// test the connection
 	socket.connectToService(address, 5);
-	EXPECT_EQ(BluetoothSocket::SocketState::ConnectingState, socket.state());
-
 	int retVal = eventLoop.exec();
 	
-	EXPECT_EQ(0, retVal) << socket.errorString();
+	EXPECT_EQ(0, retVal) << STR(socket.errorString());
 	EXPECT_EQ(BluetoothSocket::SocketState::ConnectedState, socket.state());
+
+	// send a message to the server
+	socket.write("Client says hi!");
+
+	// receive a reply from the server
+	QObject::connect(&socket, &BluetoothSocket::readyRead, [&eventLoop]()
+	{
+		eventLoop.exit(0);
+	});
+	retVal = eventLoop.exec();
+
+	EXPECT_EQ(0, retVal) << STR(socket.errorString());
+	QString reply = socket.readAll();
+	EXPECT_STREQ("Server says, why hello there!", STR(reply));
+
+	// disconnect from the server
+	QObject::connect(&socket, &BluetoothSocket::disconnected, [&eventLoop]()
+	{
+		eventLoop.exit(0);
+	});
+	socket.disconnectFromService();
+	retVal = eventLoop.exec();
+	
+	EXPECT_EQ(0, retVal) << STR(socket.errorString());
 }
 
 //--------------------------------------------------------------------------------------------------
