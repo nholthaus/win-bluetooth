@@ -462,10 +462,32 @@ TEST_F(BluetoothServerTest, transferManager)
 //	CLIENT TEST CASES
 //--------------------------------------------------------------------------------------------------
 
-TEST_F(BluetoothClientTest,client)
+TEST_F(BluetoothClientTest, client)
 {
+	BluetoothAddress address(REMOTE_PC_NAME);
+	BluetoothSocket socket;
+
+	EXPECT_EQ(BluetoothSocket::SocketState::UnconnectedState, socket.state());
+
+	// connect to the remote server via port #
+	QEventLoop eventLoop;
+	QObject::connect(&socket, &BluetoothSocket::connected, [&eventLoop]()
+	{
+		eventLoop.exit(0);
+	});
+	QObject::connect(&socket, QOverload<BluetoothSocket::SocketError>::of(&BluetoothSocket::error), 
+		[&eventLoop](BluetoothSocket::SocketError err)
+	{
+		eventLoop.exit(1);
+	});
+
+	socket.connectToService(address, 5);
+	EXPECT_EQ(BluetoothSocket::SocketState::ConnectingState, socket.state());
+
+	int retVal = eventLoop.exec();
 	
-	ADD_FAILURE();
+	EXPECT_EQ(0, retVal) << socket.errorString();
+	EXPECT_EQ(BluetoothSocket::SocketState::ConnectedState, socket.state());
 }
 
 //--------------------------------------------------------------------------------------------------
