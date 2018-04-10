@@ -106,6 +106,19 @@ BluetoothSocketPrivate::BluetoothSocketPrivate(BluetoothSocket* q, SOCKET socket
 	if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_SNDBUF, (const char*)&buffsize, sizeof(ULONG)))
 		setError(BluetoothSocket::SocketError::UnknownSocketError, "Failed to set socket send buffer size.");
 
+	if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_RCVBUF, (const char*)&buffsize, sizeof(ULONG)))
+		setError(BluetoothSocket::SocketError::UnknownSocketError, "Failed to set socket receive buffer size.");
+
+	// set encryption
+	ULONG bEncrypt = TRUE;
+	if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_ENCRYPT, (const char*)&bEncrypt, sizeof(ULONG)))
+		setError(BluetoothSocket::SocketError::OperationError, "Failed to set socket encryption.");
+
+	// set encryption
+	ULONG bAuthenticate = TRUE;
+	if (SOCKET_ERROR == ::setsockopt(socket, SOL_RFCOMM, SO_BTH_AUTHENTICATE, (const char*)&bAuthenticate, sizeof(ULONG)))
+		setError(BluetoothSocket::SocketError::OperationError, "Failed to set socket encryption.");
+
 	// set non-blocking
 	unsigned long buf = 1;
 	unsigned long outBuf;
@@ -214,13 +227,16 @@ void BluetoothSocketPrivate::setError(BluetoothSocket::SocketError error, QStrin
 	Q_Q(BluetoothSocket);
 
 	this->error = error;
-	errorString = errorString;
-	if (*errorString.end() != QChar('.'))
+	if (!errorString.isEmpty())
 	{
-		errorString += '.';
+		if (*errorString.end() != QChar('.'))
+			{
+				errorString += '.';
+			}
+			errorString += ' ';
 	}
-	errorString += ' ';
 	errorString += BluetoothException(ERR).what();	// don't throw, just get the message
+	this->errorString = errorString;
 	emit q->error(this->error);
 }
 

@@ -69,7 +69,7 @@ enum class ServiceClass
 	MSDNBluetoothConnectionExample = 0xFFFF,
 };
 
-enum class Security
+enum Security
 {
 	NoSecurity			= 0x00,
 	Authorization		= 0x01,

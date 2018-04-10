@@ -413,7 +413,7 @@ TEST_F(BluetoothServerTest, server)
 	{
 		eventLoop.exit();
 	});
-	int retVal = eventLoop.exec();
+	retVal = eventLoop.exec();
 
 	EXPECT_EQ(0, retVal) << STR(server.errorString());
 	QString message = connectedSocket->readAll();
@@ -427,7 +427,7 @@ TEST_F(BluetoothServerTest, server)
 	{
 		eventLoop.exit();
 	});
-	int retVal = eventLoop.exec();
+	retVal = eventLoop.exec();
 	EXPECT_EQ(0, retVal) << STR(server.errorString());
 
 	// cleanup
@@ -513,14 +513,19 @@ TEST_F(BluetoothClientTest, client)
 	});
 
 	// test the connection
-	socket.connectToService(address, 5);
+	QTimer::singleShot(0, [&socket, address]()
+	{
+		socket.connectToService(address, 5);
+	});
+	
 	int retVal = eventLoop.exec();
 	
 	EXPECT_EQ(0, retVal) << STR(socket.errorString());
 	EXPECT_EQ(BluetoothSocket::SocketState::ConnectedState, socket.state());
 
 	// send a message to the server
-	socket.write("Client says hi!");
+	QString message = "Client says hi!";
+	EXPECT_EQ(message.size(), socket.write(message.toLocal8Bit())) << STR(socket.errorString());
 
 	// receive a reply from the server
 	QObject::connect(&socket, &BluetoothSocket::readyRead, [&eventLoop]()
@@ -531,6 +536,7 @@ TEST_F(BluetoothClientTest, client)
 
 	EXPECT_EQ(0, retVal) << STR(socket.errorString());
 	QString reply = socket.readAll();
+	qDebug() << reply;
 	EXPECT_STREQ("Server says, why hello there!", STR(reply));
 
 	// disconnect from the server
