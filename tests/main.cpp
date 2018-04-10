@@ -1,5 +1,9 @@
 #define NOMINMAX
 
+//------------------------------
+//	INCLUDES
+//------------------------------
+
 #include <gtest/gtest.h>
 #include <win-bluetooth>
 #include <windows.h>
@@ -20,36 +24,50 @@
 #include <QFile>
 #include <QCommandLineParser>
 
+//------------------------------
+//	GLOBAL VARS
+//------------------------------
+
+QString LOCAL_PC_NAME;
+QString LOCAL_PC_ADDRESS;
+QString REMOTE_PC_NAME;
+QString REMOTE_PC_ADDRESS;
+
+//------------------------------
+//	MACROS
+//------------------------------
+
 #define STR(s) s.toStdString().c_str()
 
-class BluetoothUtils : public ::testing::Test {
+//--------------------------------------------------------------------------------------------------
+//	TEST FIXTURES
+//--------------------------------------------------------------------------------------------------
+
+class BluetoothServerTest : public ::testing::Test 
+{
 protected:
 
-	BluetoothUtils() = default;
-	virtual ~BluetoothUtils() = default;
+	BluetoothServerTest() = default;
+	virtual ~BluetoothServerTest() = default;
 	void SetUp() override {};
 	void TearDown() override {};
 };
 
-class BluetoothTest : public ::testing::Test {
+class BluetoothClientTest : public ::testing::Test 
+{
 protected:
 
-	BluetoothTest() = default;
-	virtual ~BluetoothTest() = default;
+	BluetoothClientTest() = default;
+	virtual ~BluetoothClientTest() = default;
 	void SetUp() override {};
 	void TearDown() override {};
 };
 
-class OBEX : public ::testing::Test {
-protected:
+//--------------------------------------------------------------------------------------------------
+//	SERVER TEST CASES
+//--------------------------------------------------------------------------------------------------
 
-	OBEX() = default;
-	virtual ~OBEX() = default;
-	void SetUp() override {};
-	void TearDown() override {};
-};
-
-TEST_F(BluetoothUtils, systemTimeToDateTime)
+TEST_F(BluetoothServerTest, systemTimeToDateTime)
 {
 	SYSTEMTIME st;
 	st.wYear = 1987;
@@ -63,13 +81,13 @@ TEST_F(BluetoothUtils, systemTimeToDateTime)
 	ASSERT_STREQ(STR(systemTimeToDateTime(st).toString("MM-dd-yyyy hh:mm:ss.zzz")), "05-23-1987 05:36:02.657");
 }
 
-TEST_F(OBEX, headerId)
+TEST_F(BluetoothServerTest, OBEXheaderId)
 {
 	OBEXHeader hdr(OBEXHeader::Name);
 	ASSERT_EQ(hdr.headerId(), OBEXHeader::Name);
 }
 
-TEST_F(OBEX, dataType)
+TEST_F(BluetoothServerTest, OBEXdataType)
 {
 	OBEXHeader count(OBEXHeader::Count);
 	OBEXHeader name(OBEXHeader::Name);
@@ -80,7 +98,7 @@ TEST_F(OBEX, dataType)
 	ASSERT_EQ(time.dataType(), OBEXHeader::BINARY);
 }
 
-TEST_F(OBEX, value)
+TEST_F(BluetoothServerTest, OBEXvalue)
 {
 	OBEXHeader count(OBEXHeader::Count);
 	OBEXHeader name(OBEXHeader::Name);
@@ -100,7 +118,7 @@ TEST_F(OBEX, value)
 	ASSERT_EQ(time.value(), now.toUTC().toString(Qt::ISODate));
 }
 
-TEST_F(OBEX, stream)
+TEST_F(BluetoothServerTest, OBEXstream)
 {
 	QByteArray ba;
 	QDataStream out(&ba, QIODevice::ReadWrite);
@@ -117,7 +135,7 @@ TEST_F(OBEX, stream)
 		EXPECT_EQ(ba.at(i), countData.at(i)) << "at index " << i;
 }
 
-TEST_F(OBEX, connect)
+TEST_F(BluetoothServerTest, OBEXconnect)
 {
 	OBEXConnect c(8192);
 	c.addOptionalHeader(OBEXHeader::Count,	4u);
@@ -152,7 +170,7 @@ TEST_F(OBEX, connect)
 		EXPECT_EQ(ba2.at(i), truth2.at(i)) << "at index " << i;
 }
 
-TEST_F(OBEX, fromRawData)
+TEST_F(BluetoothServerTest, OBEXfromRawData)
 {
 	std::array<char, 37> truth{ 0xC0, 0x00, 0x00, 0x00, 0x04, 0x01, 0x00, 0x13, 0xFE, 0xFF, 0x00, 0x68, 0x00, 0x69, 0x00, 0x2E, 0x00, 0x74, 0x00, 0x78, 0x00, 0x74, 0x00, 0x00, 0xC3, 0x00, 0x00, 0xF4, 0x83, 0x42, 0x00, 0x08, 0x74, 0x65, 0x78, 0x74, 0x00 };
 	auto headers = OBEXHeader::fromByteArray(QByteArray::fromRawData(&truth[0], truth.size()));
@@ -170,25 +188,25 @@ TEST_F(OBEX, fromRawData)
 	EXPECT_STREQ(headers.at(3).value().toByteArray(), "text");
 }
 
-TEST_F(BluetoothTest, BluetoothAddress)
+TEST_F(BluetoothServerTest, BluetoothAddress)
 {
 	BluetoothAddress addr("00:15:83:ED:9E:4C");
 	ASSERT_EQ(addr, (unsigned long long)92407701068);
 	ASSERT_STREQ(STR(QString(addr)), STR(QString("00:15:83:ED:9E:4C")));
 }
 
-TEST_F(BluetoothTest, BluetoothUuid)
+TEST_F(BluetoothServerTest, BluetoothUuid)
 {
 	ASSERT_STREQ(STR(BluetoothUuid(Protocol::RFCOMM).toString()),	"{00000003-0000-1000-8000-00805F9B34FB}");
 	ASSERT_STREQ(STR(BluetoothUuid().toString()),					"{00000000-0000-0000-0000-000000000000}");
 }
 
-TEST_F(BluetoothTest, name)
+TEST_F(BluetoothServerTest, name)
 {
 	ASSERT_STREQ(STR(Bluetooth::name(Bluetooth::localRadio().address())), STR(QHostInfo::localHostName().toUpper()));
 }
 
-TEST_F(BluetoothTest, BluetoothDeviceInfo)
+TEST_F(BluetoothServerTest, BluetoothDeviceInfo)
 {
 	BluetoothAddress addr("00:15:83:ED:9E:4C");
 	QString name = "Test Device";
@@ -201,25 +219,25 @@ TEST_F(BluetoothTest, BluetoothDeviceInfo)
 	EXPECT_EQ(devInfo.serviceClasses(), BluetoothDeviceInfo::AudioService | BluetoothDeviceInfo::NetworkingService);
 }
 
-TEST_F(BluetoothTest, exceptionFromHresult)
+TEST_F(BluetoothServerTest, exceptionFromHresult)
 {
 	BluetoothException ex(ERROR_NO_MORE_ITEMS);
 	ASSERT_STREQ(ex.what(), "No more data is available.");
 }
 
-TEST_F(BluetoothTest, exceptionFromString)
+TEST_F(BluetoothServerTest, exceptionFromString)
 {
 	constexpr const char* const msg = "Unknown Bluetooth Error";
 	BluetoothException ex(msg);
 	ASSERT_STREQ(ex.what(), msg);
 }
 
-TEST_F(BluetoothTest, enumerateLocalRadios)
+TEST_F(BluetoothServerTest, enumerateLocalRadios)
 {
 	ASSERT_FALSE(Bluetooth::localRadios().empty());
 }
 
-TEST_F(BluetoothTest, discoverable)
+TEST_F(BluetoothServerTest, discoverable)
 {
 	ASSERT_FALSE(Bluetooth::localRadios().empty());
 
@@ -233,7 +251,7 @@ TEST_F(BluetoothTest, discoverable)
 #endif
 }
 
-TEST_F(BluetoothTest, connectable)
+TEST_F(BluetoothServerTest, connectable)
 {
 	ASSERT_FALSE(Bluetooth::localRadios().empty());
 
@@ -247,13 +265,12 @@ TEST_F(BluetoothTest, connectable)
 #endif
 }
 
-TEST_F(BluetoothTest, radioInfo)
+TEST_F(BluetoothServerTest, radioInfo)
 {
 	QHash<QString, BluetoothAddress> addresses;
 
 	// all the test computers have to be added to this list :(
-	addresses["DAUNTLESS"]	= 102200634555791;
-	addresses["NIC-PC"]		= 71340216032535;
+	addresses[LOCAL_PC_NAME]	= BluetoothAddress(LOCAL_PC_ADDRESS);
 
 	ASSERT_TRUE(addresses.count(Bluetooth::localRadio().name())) << "This radio doesn't seem to be in the list of known addresses. Add it?";
 	ASSERT_EQ(addresses[Bluetooth::localRadio().name()], Bluetooth::localRadio().address());
@@ -263,12 +280,12 @@ TEST_F(BluetoothTest, radioInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
-TEST_F(BluetoothTest, deviceInfo)
+TEST_F(BluetoothServerTest, deviceInfo)
 {
 	std::unordered_map<QString, BluetoothAddress> addresses;
 
 	// all the test computers have to be added to this list :(
-	addresses["BSR36"] = 107442151553;
+	addresses[REMOTE_PC_NAME] = BluetoothAddress(REMOTE_PC_ADDRESS);
 
 	for (auto& [name, address] : addresses)
 	{
@@ -281,12 +298,11 @@ TEST_F(BluetoothTest, deviceInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
-TEST_F(BluetoothTest, serviceInfo)
+TEST_F(BluetoothServerTest, serviceInfo)
 {
 	QEventLoop eventLoop;
 
-	QString adapterName = "SAMSUNG-SM-G935V";
-	BluetoothServiceDiscoveryAgent agent(adapterName);
+	BluetoothServiceDiscoveryAgent agent(REMOTE_PC_NAME);
 	QObject::connect(&agent, &BluetoothServiceDiscoveryAgent::finished, &eventLoop, &QEventLoop::quit);
 	
 	agent.start(BluetoothServiceDiscoveryAgent::FullDiscovery);
@@ -294,7 +310,7 @@ TEST_F(BluetoothTest, serviceInfo)
 	eventLoop.exec();
 
 	QSet<int> knownChannels;
-	qDebug() << "DEVICE:" << adapterName;
+	qDebug() << "DEVICE:" << REMOTE_PC_NAME;
 	for (const auto& service : agent.discoveredServices())
 	{
 		qDebug() << "    " << service.serviceName() << service.serviceDescription() << service.serviceClassUuids();
@@ -306,7 +322,7 @@ TEST_F(BluetoothTest, serviceInfo)
 	}	
 }
 
-TEST_F(BluetoothTest, registerService)
+TEST_F(BluetoothServerTest, registerService)
 {
 	// register a service
 	BluetoothServiceInfo service;
@@ -368,8 +384,9 @@ TEST_F(BluetoothTest, registerService)
 	EXPECT_FALSE(foundTheTestService);
 }
 
-TEST_F(BluetoothTest, server)
+TEST_F(BluetoothServerTest, server)
 {
+	// won't pass/complete unless another PC is running in client mode
 	BluetoothServer server;
 	EXPECT_TRUE(server.listen(QHostInfo::localHostName(), 5)) << STR(server.errorString());
 
@@ -386,7 +403,7 @@ TEST_F(BluetoothTest, server)
 	EXPECT_FALSE(server.hasPendingConnections());
 }
 
-TEST_F(BluetoothTest, transferManager)
+TEST_F(BluetoothServerTest, transferManager)
 {
 	// for this test to succeed, the receiving PC needs to be in a state where it can accept
 	// incoming bluetooth files.
@@ -399,7 +416,7 @@ TEST_F(BluetoothTest, transferManager)
 	BluetoothTransferManager *transferManager = new BluetoothTransferManager;
 
 	// Create the transfer request and file to be sent
-	BluetoothAddress remoteAddress("RELENTLESS");
+	BluetoothAddress remoteAddress(REMOTE_PC_NAME);
 	BluetoothTransferRequest request(remoteAddress);
 	request.setAttribute(BluetoothTransferRequest::Attribute::NameAttribute, "words.txt");
 
@@ -441,6 +458,20 @@ TEST_F(BluetoothTest, transferManager)
 	EXPECT_EQ(transfered, 100);
 }
 
+//--------------------------------------------------------------------------------------------------
+//	CLIENT TEST CASES
+//--------------------------------------------------------------------------------------------------
+
+TEST_F(BluetoothClientTest,client)
+{
+	
+	ADD_FAILURE();
+}
+
+//--------------------------------------------------------------------------------------------------
+//	MAIN
+//--------------------------------------------------------------------------------------------------
+
 int main(int argc, char* argv[])
 {
 	::testing::InitGoogleTest(&argc, argv);
@@ -453,6 +484,26 @@ int main(int argc, char* argv[])
 	parser.setApplicationDescription("Test application for the win-bluetooth library");
 	parser.addHelpOption();
 	parser.addVersionOption();
+
+	parser.addPositionalArgument("LocalPCName", "Hostname of the local PC");
+	parser.addPositionalArgument("LocalPCAddress", "Bluetooth address of the local PC, as a string", "XX:XX:XX:XX:XX:XX");
+	parser.addPositionalArgument("RemotePCName", "Hostname of the remote PC");
+	parser.addPositionalArgument("RemotePCAddress", "Bluetooth address of the remote PC, as a string", "XX:XX:XX:XX:XX:XX");
+	QCommandLineOption runAsClientOption("c", "Run the unit tests in client mode. By default, test are run in server mode");
+	parser.addOption(runAsClientOption);
+
+	parser.process(app);
+
+	const QStringList args = parser.positionalArguments();
+	LOCAL_PC_NAME = args.at(0);
+	LOCAL_PC_ADDRESS = args.at(1);
+	REMOTE_PC_NAME = args.at(2);
+	REMOTE_PC_ADDRESS = args.at(3);
+
+	if(parser.isSet(runAsClientOption))
+		::testing::GTEST_FLAG(filter) = "*Client*";
+	else
+		::testing::GTEST_FLAG(filter) = "*Server*";
 
 	return RUN_ALL_TESTS();
 }

@@ -1,4 +1,4 @@
-PROJECT(tests)
+PROJECT(win-bluetooth-test)
 
 SET(SOURCE_CODE 
 main.cpp
