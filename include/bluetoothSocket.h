@@ -137,6 +137,7 @@ public:
 
 signals:
 
+	void readyRead();
 	void connected();
 	void disconnected();
 	void error(SocketError error);

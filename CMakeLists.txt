@@ -29,6 +29,7 @@ include/bluetoothServer.h
 include/bluetoothServiceDiscoveryAgent.h
 include/bluetoothServiceInfo.h
 include/bluetoothSocket.h
+include/bluetoothSocket_p.h
 include/bluetoothTransferManager.h
 include/bluetoothTransferReply.h
 include/bluetoothTransferRequest.h
@@ -54,6 +55,7 @@ src/bluetoothServer.cpp
 src/bluetoothServiceDiscoveryAgent.cpp
 src/bluetoothServiceInfo.cpp
 src/bluetoothSocket.cpp
+src/bluetoothSocket_p.cpp
 src/bluetoothTransferManager.cpp
 src/bluetoothTransferReply.cpp
 src/bluetoothTransferRequest.cpp
