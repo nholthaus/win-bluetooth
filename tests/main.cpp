@@ -397,7 +397,8 @@ TEST_F(BluetoothServerTest, server)
 	QObject::connect(&server, QOverload<BluetoothServer::Error>::of(&BluetoothServer::error),
 		[&server](BluetoothServer::Error err)
 	{
-		ADD_FAILURE() << server.errorString();
+		ADD_FAILURE();
+		qDebug() << server.errorString();
 	});
 
 	QObject::connect(&server, &BluetoothServer::newConnection, [&]()
@@ -511,7 +512,7 @@ TEST_F(BluetoothClientTest, client)
 		gotConnectedSignal = true;
 	}, Qt::QueuedConnection);
 
-	QObject::connect(&socket, &BluetoothSocket::state, &eventLoop, [&](BluetoothSocket::SocketState state)
+	QObject::connect(&socket, &BluetoothSocket::stateChanged, &eventLoop, [&](BluetoothSocket::SocketState state)
 	{
 		gotStateChangedSignal = true;
 	}, Qt::QueuedConnection);
@@ -519,7 +520,8 @@ TEST_F(BluetoothClientTest, client)
 	QObject::connect(&socket, QOverload<BluetoothSocket::SocketError>::of(&BluetoothSocket::error), &eventLoop,
 		[&socket](BluetoothSocket::SocketError err)
 	{
-		ADD_FAILURE() << socket.errorString();
+		ADD_FAILURE();
+		qDebug() << socket.errorString();
 	}, Qt::QueuedConnection);
 
 	QObject::connect(&socket, &BluetoothSocket::readyRead, &eventLoop, [&]()
@@ -530,7 +532,7 @@ TEST_F(BluetoothClientTest, client)
 		QString message = socket.readAll();
 		EXPECT_STREQ("Server says, why hello there!", STR(message));
 
-		QString message = "Client says hi!";
+		message = "Client says hi!";
 		EXPECT_EQ(message.size(), socket.write(message.toLocal8Bit()));
 
 		socket.disconnectFromService();
