@@ -1,5 +1,5 @@
 #include "bluetoothSocket_p.h"
-
+#include <QCoreApplication>
 
 //------------------------------
 //	MACROS
@@ -7,13 +7,15 @@
 
 #define ERR HRESULT_FROM_WIN32(GetLastError())
 
+//--------------------------------------------------------------------------------------------------
+//	BLUETOOTH SOCKET PRIVATE
+//--------------------------------------------------------------------------------------------------
 BluetoothSocketPrivate::BluetoothSocketPrivate(BluetoothSocket* q, SOCKET socketDescriptor /*= INVALID_SOCKET*/) : q_ptr(q)
 {
 	QObject::connect(this, &BluetoothSocketPrivate::connected, q, &BluetoothSocket::connected, Qt::QueuedConnection);
 	QObject::connect(this, &BluetoothSocketPrivate::disconnected, q, &BluetoothSocket::disconnected, Qt::QueuedConnection);
 	QObject::connect(this, &BluetoothSocketPrivate::stateChanged, q, &BluetoothSocket::stateChanged, Qt::QueuedConnection);
 	QObject::connect(this, &BluetoothSocketPrivate::readyRead, q, &BluetoothSocket::readyRead, Qt::QueuedConnection);
-
 	// Ask for Winsock version 2.2.
 	WSADATA WSAData = { 0 };
 	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
@@ -75,6 +77,7 @@ BluetoothSocketPrivate::BluetoothSocketPrivate(BluetoothSocket* q, SOCKET socket
 			if (ret - WSA_WAIT_EVENT_0 == 0)
 			{
 				emit this->readyRead();
+				qApp->processEvents();
 				readyReadCondition.wakeAll();
 			}
 			if (ret - WSA_WAIT_EVENT_0 == 1)

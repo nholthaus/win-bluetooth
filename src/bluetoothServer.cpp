@@ -5,6 +5,7 @@
 #include <bluetooth.h>
 #include <bluetoothException.h>
 
+#include <QCoreApplication>
 #include <QVariant>
 #include <QMutex>
 #include <QWaitCondition>
@@ -137,6 +138,7 @@ bool BluetoothServerPrivate::listen(const SOCKADDR_BTH& sockaddrBth)
 				{
 					BluetoothSocket* newBtSock = new BluetoothSocket;
 					newBtSock->setSocketDescriptor(newSock, BluetoothServiceInfo::RfcommProtocol);
+					newBtSock->moveToThread(qApp->thread());
 
 					pendingConnectionsMutex.lock();
 					pendingConnections.append(newBtSock);

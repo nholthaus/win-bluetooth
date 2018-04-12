@@ -43,7 +43,11 @@ BluetoothSocket::BluetoothSocket(QObject* parent)
 	: QIODevice(parent)
 	, d_ptr(new BluetoothSocketPrivate(this))
 {
-	connect((QIODevice*)this, &QIODevice::readyRead, this, &QBluetoothSocket::readyRead);
+	connect((QIODevice*)this, &QIODevice::readyRead, this, &BluetoothSocket::readyRead);
+	connect(this, &BluetoothSocket::readyRead, this, []() 
+	{
+		qDebug() << "socket ready read";
+	});
 }
 
 //--------------------------------------------------------------------------------------------------
