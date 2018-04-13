@@ -32,7 +32,7 @@ public:
 
 	Q_DECLARE_PUBLIC(BluetoothServer);
 	BluetoothServerPrivate(BluetoothServer* parent);
-	virtual ~BluetoothServerPrivate() = default;
+	virtual ~BluetoothServerPrivate();
 
 	bool listen(const SOCKADDR_BTH& sockaddrBth);
 
@@ -62,9 +62,19 @@ protected:
 //--------------------------------------------------------------------------------------------------
 //	BluetoothServerPrivate (public ) []
 //--------------------------------------------------------------------------------------------------
-BluetoothServerPrivate::BluetoothServerPrivate(BluetoothServer* parent) : q_ptr(parent)
+BluetoothServerPrivate::BluetoothServerPrivate(BluetoothServer* parent) 
+	: q_ptr(parent)
 {
 
+}
+
+//--------------------------------------------------------------------------------------------------
+//	~BluetoothServerPrivate (public ) [virtual ]
+//--------------------------------------------------------------------------------------------------
+BluetoothServerPrivate::~BluetoothServerPrivate()
+{
+	WSASetEvent(joinEvent);
+	acceptThread.join();
 }
 
 //--------------------------------------------------------------------------------------------------
