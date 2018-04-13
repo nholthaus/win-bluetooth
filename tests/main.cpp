@@ -23,6 +23,7 @@
 #include <QTimer>
 #include <QFile>
 #include <QCommandLineParser>
+#include <QProcess>
 
 //------------------------------
 //	GLOBAL VARS
@@ -569,6 +570,15 @@ TEST_F(BluetoothClientTest, client)
 	EXPECT_TRUE(gotStateChangedSignal);
 	EXPECT_TRUE(gotReadyReadSignal);
 	EXPECT_TRUE(gotDisconnectedSignal);
+}
+
+TEST_F(BluetoothClientTest, clientFileTransfer)
+{
+	QProcess btFileReceive;
+	btFileReceive.start("fsquirt.exe -receive");
+	btFileReceive.waitForFinished(90000);
+	EXPECT_EQ(QProcess::NormalExit, btFileReceive.exitStatus());
+	EXPECT_EQ(0, btFileReceive.exitCode());
 }
 
 //--------------------------------------------------------------------------------------------------
