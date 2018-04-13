@@ -576,9 +576,9 @@ TEST_F(BluetoothClientTest, clientFileTransfer)
 {
 	QProcess btFileReceive;
 	btFileReceive.start("fsquirt.exe -receive");
-	btFileReceive.waitForFinished(90000);
-	EXPECT_EQ(QProcess::NormalExit, btFileReceive.exitStatus());
-	EXPECT_EQ(0, btFileReceive.exitCode());
+	EXPECT_TRUE(btFileReceive.waitForFinished(1000000)) << "File transfer timed out!";
+	EXPECT_EQ(QProcess::NormalExit, btFileReceive.exitStatus()) << "File transfer exited abnormally";
+	EXPECT_EQ(0, btFileReceive.exitCode()) << "File transfer failed!";
 }
 
 //--------------------------------------------------------------------------------------------------
