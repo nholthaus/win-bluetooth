@@ -16,6 +16,7 @@ BluetoothSocketPrivate::BluetoothSocketPrivate(BluetoothSocket* q, SOCKET socket
 	QObject::connect(this, &BluetoothSocketPrivate::disconnected, q, &BluetoothSocket::disconnected, Qt::QueuedConnection);
 	QObject::connect(this, &BluetoothSocketPrivate::stateChanged, q, &BluetoothSocket::stateChanged, Qt::QueuedConnection);
 	QObject::connect(this, &BluetoothSocketPrivate::readyRead, q, &BluetoothSocket::readyRead, Qt::QueuedConnection);
+	
 	// Ask for Winsock version 2.2.
 	WSADATA WSAData = { 0 };
 	if (WSAStartup(MAKEWORD(2, 2), &WSAData))
@@ -76,12 +77,14 @@ BluetoothSocketPrivate::BluetoothSocketPrivate(BluetoothSocket* q, SOCKET socket
 			auto ret = WSAWaitForMultipleEvents(2, readOrJoin, FALSE, WSA_INFINITE, TRUE);
 			if (ret - WSA_WAIT_EVENT_0 == 0)
 			{
+				// got some data
 				emit this->readyRead();
 				qApp->processEvents();
 				readyReadCondition.wakeAll();
 			}
 			if (ret - WSA_WAIT_EVENT_0 == 1)
 			{
+				// time to join
 				break;
 			}
 
@@ -100,6 +103,28 @@ BluetoothSocketPrivate::BluetoothSocketPrivate(BluetoothSocket* q, SOCKET socket
 			WSAResetEvent(readCompleteEvent);
 		}
 	});
+
+	checkConnectionThread = std::thread([this]()
+	{
+		forever
+		{
+			auto ret = WSAWaitForMultipleEvents(1, &joinEvent, FALSE, 100, TRUE);
+			if (ret - WSA_WAIT_EVENT_0 == 0)
+			{
+				//join
+				break;
+			}
+			if (ret == WSA_WAIT_TIMEOUT)
+			{
+				// check if the connection is still alive, abort if it's not
+				if (clientHasDisconnected())
+				{
+					closeSocket();
+					break;
+				}
+			}
+		}
+	});
 }
 
 BluetoothSocketPrivate::~BluetoothSocketPrivate()
@@ -110,6 +135,7 @@ BluetoothSocketPrivate::~BluetoothSocketPrivate()
 
 	closeSocket();
 	readyReadThread.join();
+	checkConnectionThread.join();
 
 	WSACloseEvent(readEvent);
 	WSACloseEvent(joinEvent);
@@ -172,4 +198,17 @@ void BluetoothSocketPrivate::setState(BluetoothSocket::SocketState state)
 void BluetoothSocketPrivate::setReadComplete()
 {
 	WSASetEvent(readCompleteEvent);
+}
+
+//--------------------------------------------------------------------------------------------------
+//	clientHasDisconnected (protected ) []
+//--------------------------------------------------------------------------------------------------
+bool BluetoothSocketPrivate::clientHasDisconnected() const
+{
+	// this is dumb but true. Gotta love BSD sockets.
+	int r = recv(socket, nullptr, 0, 0);
+	if (!r)
+		return true;
+
+	return false;
 }

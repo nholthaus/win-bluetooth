@@ -49,6 +49,10 @@ signals:
 	void error(BluetoothSocket::SocketError error);
 	void stateChanged(BluetoothSocket::SocketState state);
 
+protected:
+
+	bool clientHasDisconnected() const;
+
 public:
 
 	BluetoothSocket*				q_ptr;
@@ -60,6 +64,7 @@ public:
 	BluetoothServiceInfo::Protocol	protocol;
 	QString							errorString;
 
+	std::thread						checkConnectionThread;
 	std::thread						readyReadThread;
 	HANDLE							readEvent;
 	HANDLE							joinEvent;

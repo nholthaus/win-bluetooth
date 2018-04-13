@@ -540,6 +540,7 @@ TEST_F(BluetoothClientTest, client)
 
 		// receive a message from the server
 		QString message = socket.readAll();
+		qDebug() << message;
 		EXPECT_STREQ("Server says, why hello there!", STR(message));
 
 		message = "Client says hi!";
