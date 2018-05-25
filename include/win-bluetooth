@@ -9,6 +9,7 @@
 #include <bluetoothServiceDiscoveryAgent.h>
 #include <bluetoothServiceinfo.h>
 #include <bluetoothServer.h>
+#include <bluetoothLocalDevice.h>
 
 #ifdef _WINDOWS_
 #error Don't include windows.h or bluetoothUtils.h in header files!

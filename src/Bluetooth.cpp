@@ -168,7 +168,7 @@ bool Bluetooth::enumerateRemoteDevices(bool refreshList /*= false*/)
 		}
 	}
 
-	return m_remoteDevices.size();
+	return !m_remoteDevices.empty();
 }
 
 BluetoothRadio& Bluetooth::localRadio(const QString& name, bool refreshList /*= false*/)

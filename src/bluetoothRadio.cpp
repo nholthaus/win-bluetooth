@@ -2,6 +2,12 @@
 #include <bluetoothException.h>
 #include <bluetoothUuids.h>
 #include <bluetoothAddress.h>
+#include <Bluetooth.h>
+
+#include <array>
+
+#include <QApplication>
+#include <QWindow>
 
 #include <winsock2.h>
 #include <bluetoothapis.h>
@@ -71,7 +77,27 @@ BluetoothRadio::~BluetoothRadio()
 
 bool BluetoothRadio::connectTo(BluetoothAddress address)
 {
-	throw BluetoothException("unimplemented");
+	HWND hwnd = GetConsoleWindow();
+	if (!hwnd)
+		hwnd = GetActiveWindow();
+	if (!hwnd && qApp)
+		if (!QApplication::topLevelWindows().empty())
+			hwnd = (HWND)QApplication::topLevelWindows().at(0)->winId();
+
+	std::array<wchar_t, 7> passkey = { '9','0','8', '9', '0', '8', '\0' };
+	Bluetooth::remoteDevices(true);
+	auto ret = BluetoothAuthenticateDevice(hwnd, handle(), (BLUETOOTH_DEVICE_INFO_STRUCT*)Bluetooth::remoteDevice(Bluetooth::name(address)).deviceInfo(),/* passkey.data()*/NULL, /*passkey.size()*/NULL);
+	
+	if (ret == ERROR_SUCCESS)
+		return true;
+	else if (ret == ERROR_NO_MORE_ITEMS)
+		// already marked as authenticated
+		return true;
+	else if (ret == WAIT_TIMEOUT)
+		// request timed out
+		return false;
+	else
+		return false;
 }
 
 unsigned short BluetoothRadio::manufacturer() const

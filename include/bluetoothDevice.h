@@ -78,11 +78,12 @@ public:
 	unsigned long classOfDevice() const;
 
 	bool isValid() const;
-	bool connected();
-	bool remembered();
-	bool authenticated();
-	QDateTime lastSeen();
-	QDateTime lastUsed();
+	bool connected() const;
+	bool remembered() const;
+	bool authenticated() const;
+	QDateTime lastSeen() const;
+	QDateTime lastUsed() const;
+	void* deviceInfo() const;
 
 	bool operator<(const BluetoothDevice& other);
 	bool operator==(const QString& name) const;
@@ -91,12 +92,12 @@ public:
 
 protected:
 
-	 void refresh();
+	 void refresh() const;
 
 private:
 
 	void*				m_radioHandle	= nullptr;
-	void*				m_deviceInfo	= nullptr;
+	mutable void*		m_deviceInfo	= nullptr;
 };
 
 #endif // bluetoothDevice_h__

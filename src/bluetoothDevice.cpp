@@ -129,7 +129,7 @@ unsigned long BluetoothDevice::classOfDevice() const
 	return m_deviceInfo ? DEVINFO->ulClassofDevice : 0;
 }
 
-void BluetoothDevice::refresh()
+void BluetoothDevice::refresh() const
 {
 	BluetoothGetDeviceInfo(m_radioHandle, static_cast<BLUETOOTH_DEVICE_INFO*>(m_deviceInfo));
 }
@@ -139,34 +139,39 @@ bool BluetoothDevice::isValid() const
 	return m_deviceInfo != nullptr;
 }
 
-bool BluetoothDevice::connected()
+bool BluetoothDevice::connected() const
 {
 	refresh();
 	return m_deviceInfo ? DEVINFO->fConnected : false;
 }
 
-bool BluetoothDevice::remembered()
+bool BluetoothDevice::remembered() const
 {
 	refresh();
 	return m_deviceInfo ? DEVINFO->fRemembered : false;
 }
 
-bool BluetoothDevice::authenticated()
+bool BluetoothDevice::authenticated() const
 {
 	refresh();
 	return m_deviceInfo ? DEVINFO->fAuthenticated : false;
 }
 
-QDateTime BluetoothDevice::lastSeen()
+QDateTime BluetoothDevice::lastSeen() const
 {
 	refresh();
 	return m_deviceInfo ? systemTimeToDateTime(DEVINFO->stLastSeen) : QDateTime();
 }
 
-QDateTime BluetoothDevice::lastUsed()
+QDateTime BluetoothDevice::lastUsed() const
 {
 	refresh();
 	return m_deviceInfo ? systemTimeToDateTime(DEVINFO->stLastUsed) : QDateTime();
+}
+
+void* BluetoothDevice::deviceInfo() const
+{
+	return m_deviceInfo;
 }
 
 bool BluetoothDevice::operator<(const BluetoothDevice& other)

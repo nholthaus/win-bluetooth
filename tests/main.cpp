@@ -385,6 +385,32 @@ TEST_F(BluetoothServerTest, registerService)
 	EXPECT_FALSE(foundTheTestService);
 }
 
+TEST_F(BluetoothServerTest, pair)
+{
+	QEventLoop eventLoop;
+
+	BluetoothLocalDevice localRadio;
+	std::cout << "Follow the on-screen instructions to pair your device";
+
+	bool success = false;
+	QObject::connect(&localRadio, &BluetoothLocalDevice::pairingFinished, [&success, &eventLoop](const BluetoothAddress& addr, BluetoothLocalDevice::Pairing paired)
+	{
+		EXPECT_EQ(BluetoothAddress(REMOTE_PC_ADDRESS), addr);
+		success = paired == BluetoothLocalDevice::AuthorizedPaired || BluetoothLocalDevice::AuthorizedPaired;
+		eventLoop.quit();
+	});
+
+	QTimer::singleShot(0, [&localRadio]()
+	{
+		// pair once the event loop starts
+		localRadio.requestPairing(REMOTE_PC_ADDRESS, BluetoothLocalDevice::AuthorizedPaired);
+	});
+	
+	eventLoop.exec();
+
+	EXPECT_TRUE(success);
+}
+
 TEST_F(BluetoothServerTest, server)
 {
 	QEventLoop eventLoop;
