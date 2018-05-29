@@ -1,6 +1,7 @@
 #include <bluetoothLocalDevice.h>
 #include <bluetoothAddress.h>
 #include <bluetoothRadio.h>
+#include <bluetoothHostInfo.h>
 #include <bluetooth.h>
 
 #include <QtConcurrent/QtConcurrentRun>
@@ -195,6 +196,24 @@ void BluetoothLocalDevice::setHostMode(HostMode mode)
 	default:
 		break;
 	}
+}
+
+//--------------------------------------------------------------------------------------------------
+//	allDevices (public ) [static ]
+//--------------------------------------------------------------------------------------------------
+QList<BluetoothHostInfo> BluetoothLocalDevice::allDevices()
+{
+	QList<BluetoothHostInfo> infoList;
+	BluetoothHostInfo info;
+
+	for (const auto& [name, device] : Bluetooth::remoteDevices(true))
+	{	
+		info.setName(name);
+		info.setAddress(device.address);
+		infoList << info;
+	}
+
+	return infoList;
 }
 
 //--------------------------------------------------------------------------------------------------

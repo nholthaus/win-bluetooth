@@ -53,6 +53,7 @@
 //-------------------------
 
 class BluetoothAddress;
+class BluetoothHostInfo;
 class BluetoothLocalDevicePrivate;
 
 //--------------------------------------------------------------------------------------------------
@@ -107,7 +108,7 @@ public:
 	void requestPairing(const BluetoothAddress &address, Pairing pairing);
 	void setHostMode(BluetoothLocalDevice::HostMode mode);
 	
-//	static QList<BluetoothHostInfo> allDevices();
+	static QList<BluetoothHostInfo> allDevices();
 
 public slots:
 	
