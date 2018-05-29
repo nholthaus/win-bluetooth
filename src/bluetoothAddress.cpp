@@ -58,6 +58,16 @@ bool BluetoothAddress::isNull() const
 	return !m_address;
 }
 
+QString BluetoothAddress::toString() const
+{
+	return *this;
+}
+
+quint64 BluetoothAddress::toUInt64() const
+{
+	return *this;
+}
+
 BluetoothAddress::operator uint64_t() const
 {
 	return m_address;

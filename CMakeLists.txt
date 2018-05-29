@@ -24,6 +24,7 @@ include/bluetoothDevice.h
 include/bluetoothDeviceInfo.h
 include/bluetoothEnums.h
 include/bluetoothException.h
+include/bluetoothHostInfo.h
 include/bluetoothLocalDevice.h
 include/bluetoothRadio.h
 include/bluetoothServer.h
@@ -51,6 +52,7 @@ src/bluetoothAddress.cpp
 src/bluetoothDevice.cpp
 src/bluetoothDeviceInfo.cpp
 src/bluetoothException.cpp
+src/bluetoothHostInfo.cpp
 src/bluetoothLocalDevice.cpp
 src/bluetoothRadio.cpp
 src/bluetoothServer.cpp

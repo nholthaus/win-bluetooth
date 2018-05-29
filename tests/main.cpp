@@ -281,6 +281,13 @@ TEST_F(BluetoothServerTest, radioInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
+TEST_F(BluetoothServerTest, bluetoothHostInfo)
+{
+	BluetoothHostInfo info;
+	EXPECT_STREQ(STR(LOCAL_PC_NAME), STR(info.name()));
+	EXPECT_STREQ(STR(LOCAL_PC_ADDRESS), STR(info.address().toString()));
+}
+
 TEST_F(BluetoothServerTest, deviceInfo)
 {
 	std::unordered_map<QString, BluetoothAddress> addresses;

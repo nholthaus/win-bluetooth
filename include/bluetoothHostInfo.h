@@ -1,6 +1,6 @@
 //--------------------------------------------------------------------------------------------------
 // 
-///	@project WIN-BLUETOOTH
+//	
 //
 //--------------------------------------------------------------------------------------------------
 //
@@ -32,48 +32,54 @@
 //
 //--------------------------------------------------------------------------------------------------
 //
-/// @file	bluetoothAddress.h
-/// @brief	Description of a single bluetooth address
+/// @file	bluetoothHostInfo.h
+/// @brief	Information about the local bluetooth radio. UNLIKE the Qt version, a default constructed
+///			object will include information about the default local radio.
 //
 //--------------------------------------------------------------------------------------------------
 
 #pragma once
-#ifndef bluetoothAddress_h__
-#define bluetoothAddress_h__
+#ifndef bluetoothHostInfo_h__
+#define bluetoothHostInfo_h__
 
-#include <cstdint>
-#include <QString>
+//-------------------------
+//	INCLUDES
+//-------------------------
 
-class BluetoothAddress
+#include <QObject>
+
+//-------------------------
+//	FORWARD DECLARATIONS
+//-------------------------
+
+class BluetoothHostInfoPrivate;
+class BluetoothAddress;
+class QString;
+
+//--------------------------------------------------------------------------------------------------
+//	BluetoothHostInfo
+//--------------------------------------------------------------------------------------------------
+
+class BluetoothHostInfo
 {
 public:
 
-	BluetoothAddress() = default;
-	BluetoothAddress(uint64_t address);
-	BluetoothAddress(const QString& nameOrMac);
-	BluetoothAddress(const char* nameOrMac);
-
-	void clear();
-	bool isNull() const;
-	QString toString() const;
-	quint64 toUInt64() const;
-
-	operator QString() const;
-	operator uint64_t() const;
+	BluetoothHostInfo();
+	BluetoothHostInfo(const BluetoothHostInfo& other);
+	virtual ~BluetoothHostInfo();
 	
-	bool operator==(uint64_t other) const;
-	bool operator==(const QString& other) const;
-	bool operator==(const BluetoothAddress& other) const;
-	bool operator!=(const BluetoothAddress& other) const;
-	bool operator<(const BluetoothAddress& other) const;
+	BluetoothAddress address() const;
+	QString name() const;
+	void setAddress(const BluetoothAddress &address);
+	void setName(const QString &name);
+	bool operator!=(const BluetoothHostInfo &other) const;
+	BluetoothHostInfo &operator=(const BluetoothHostInfo &other);
+	bool operator==(const BluetoothHostInfo &other) const;
 
-private:
+protected:
 
-	void addressFromString(const QString& nameOrMac);
-
-private:
-
-	uint64_t	m_address = 0;
+	Q_DECLARE_PRIVATE(BluetoothHostInfo);
+	BluetoothHostInfoPrivate* d_ptr;
 };
 
-#endif // bluetoothAddress_h__
+#endif // bluetoothHostInfo_h__
