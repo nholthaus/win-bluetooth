@@ -306,6 +306,20 @@ TEST_F(BluetoothServerTest, deviceInfo)
 		std::cout << "    " << name.toStdString() << std::endl;
 }
 
+TEST_F(BluetoothServerTest, BluetoothDeviceDiscoveryAgent)
+{
+	QEventLoop eventLoop;
+
+	BluetoothDeviceDiscoveryAgent agent;
+	QObject::connect(&agent, &BluetoothDeviceDiscoveryAgent::finished, &eventLoop, &QEventLoop::quit);
+
+	agent.start();
+
+	eventLoop.exec();
+
+	EXPECT_TRUE(agent.discoveredDevices().size() > 0);
+}
+
 TEST_F(BluetoothServerTest, serviceInfo)
 {
 	QEventLoop eventLoop;

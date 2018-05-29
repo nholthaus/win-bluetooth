@@ -69,15 +69,13 @@ public:
 	static BluetoothRadio&	localRadio(const QString& name, bool refreshList = false);
 	static BluetoothDevice&	remoteDevice(const QString& name, bool refreshList = false);
 	
+	static bool enumerateLocalRadios(bool refreshList = false);
+	static bool enumerateRemoteDevices(bool refreshList = false);
+	
 	static std::unordered_map<QString, BluetoothRadio>&		localRadios(bool refreshList = false);
 	static std::unordered_map<QString, BluetoothDevice>&	remoteDevices(bool refreshList = false);
 
 	static QString name(const BluetoothAddress& address);
-
-private:
-
-	static bool enumerateLocalRadios(bool refreshList = false);
-	static bool enumerateRemoteDevices(bool refreshList = false);
 
 private:
 

@@ -21,6 +21,7 @@ list(APPEND HEADER_FILES
 include/bluetooth.h
 include/bluetoothAddress.h
 include/bluetoothDevice.h
+include/bluetoothDeviceDiscoveryAgent.h
 include/bluetoothDeviceInfo.h
 include/bluetoothEnums.h
 include/bluetoothException.h
@@ -50,6 +51,7 @@ list(APPEND SOURCE_FILES
 src/bluetooth.cpp
 src/bluetoothAddress.cpp
 src/bluetoothDevice.cpp
+src/bluetoothDeviceDiscoveryAgent.cpp
 src/bluetoothDeviceInfo.cpp
 src/bluetoothException.cpp
 src/bluetoothHostInfo.cpp

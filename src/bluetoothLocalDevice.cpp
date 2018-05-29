@@ -209,7 +209,7 @@ QList<BluetoothHostInfo> BluetoothLocalDevice::allDevices()
 	for (const auto& [name, device] : Bluetooth::remoteDevices(true))
 	{	
 		info.setName(name);
-		info.setAddress(device.address);
+		info.setAddress(device.address());
 		infoList << info;
 	}
 
